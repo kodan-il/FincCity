@@ -9,7 +9,10 @@ from openai import OpenAI, responses
 from prompts import build_prompt
 from settings import OPENAI_API_KEY, LLM_VERS
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(
+    api_key=OPENAI_API_KEY,
+    base_url="https://openrouter.ai/api/v1"
+)
 
 #-- TODO: create description about high volatile outcomes and weights for random generator
 HIGH_VOLATILE_OUTCOMES = [-4,-3,-2,-1, 0, 1, 2, 3, 4]
