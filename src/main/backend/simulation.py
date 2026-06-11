@@ -232,7 +232,7 @@ def run_simulation():
             # Step 1 — Build prompt
             prompt = build_prompt(agent, market_condition, featured_stock)
 
-            # Step 2 — Kirim ke LLM
+            # Step 2 — send to LLM
             response = client.chat.completions.create(
                 model= LLM_VERS,
                 messages=[{"role": "user", "content": prompt}]
@@ -243,7 +243,7 @@ def run_simulation():
             decision  = parse_decision(raw_response, featured_stock)
             reasoning = parse_reasoning(raw_response)
 
-            # Step 4 — Hitung outcome & update state
+            # Step 4 — Outcome count and agent update
             outcome        = calculate_outcome(decision, market_condition)
             previous_points = agent.financial_points
             agent_update(agent, decision.stock, outcome, iteration)
