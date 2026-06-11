@@ -27,7 +27,7 @@ share/python-wheels/
 MANIFEST
 
 *.DS_Store
-settings.py
+src/main/backend/settings.py
 
 # PyInstaller
 #   Usually these files are written by a python script from a template
