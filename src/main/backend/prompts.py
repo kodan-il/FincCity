@@ -4,25 +4,26 @@ from schemas import AgentProfile, MarketCondition, FeaturedStock
 
 
 #-- TODO: create the prompt for the simulation
+#-- TODO: this prompt taken fro Claude
 def build_prompt(
         agent: AgentProfile,
         market: MarketCondition,
         featured_stocks: list[FeaturedStock]
 ) -> str:
 
-    # Format featured stocks jadi readable string
+    # Makes featured stock into readable string.
     stocks_info = "\n".join([
         f"- {f.stock.Stock_Name} "
         f"({'High Volatile' if f.stock.Stock_Type == 'high_volatile' else 'Stable'}) "
-        f"| Today's Trend: {f.todays_trend.upper()} "
+        f"| Trend: {f.todays_trend.upper()} "
         f"| {f.stock.description}"
         for f in featured_stocks
     ])
 
     return f"""
-    You are {agent.Agent_name}, a retail investor who is still learning how the investment world works.
+    You are {agent.Agent_name}, a retail investor.
 
-    YOUR PROFILE:
+    YOUR PERSONALITY PROFILE:
     - Financial Literacy : {agent.literacy_level}
     - FOMO Level         : {agent.fomo_level}
     - Personality        : {agent.personality}
@@ -30,31 +31,40 @@ def build_prompt(
     - Economic Level     : {agent.economic_level}
     - Current Points     : {agent.financial_points}
 
+    PERSONALITY GUIDE:
+    - If you are "impulsive": you act on gut feeling, rarely think twice.
+    - If you are "analytical": you weigh pros and cons carefully before deciding.
+    - If you are "herd-follower": you tend to follow what others are doing.
+    - If you are "contrarian": you deliberately go against the market trend.
+    - If your FOMO is "high": you are easily tempted by hype and fear missing out.
+    - If your literacy is "low": you may not fully understand the risks involved.
+    - If your tendency is "risk-seeking": you prefer high reward even if risky.
+    - If your tendency is "risk-averse": you prefer safety over high returns.
+
     CURRENT MARKET CONDITION:
     {market.condition.upper()} — {market.description}
 
-    TODAY'S AVAILABLE STOCKS (choose only from these):
+    TODAY'S AVAILABLE STOCKS (you MUST choose only from this list):
     {stocks_info}
 
     YOUR TASK:
-    Based on your personality and profile above, decide which stock you want to invest in today.
-    Stay in character — if you are impulsive, act impulsively. If you are analytical, think carefully.
-    If you have high FOMO, you might be tempted by volatile stocks even if risky.
+    Based strictly on your personality profile above, decide which stock to invest in today.
+    Do NOT choose outside the list. Stay fully in character.
 
-    Respond ONLY in this format:
+    Respond ONLY in this exact format, nothing else:
     DECISION: [exact stock name from the list above]
-    REASONING: [2-3 sentences explaining your decision in first person, as your character]
+    REASONING: [2-3 sentences in first person, as your character]
     """
 
 def parse_decision(raw: str, featured_stocks: list[FeaturedStock]) -> FeaturedStock:
     for line in raw.splitlines():
         if "DECISION:" in line:
             stock_name = line.replace("DECISION:", "").strip()
-            # Cari di featured stocks
             for f in featured_stocks:
                 if f.stock.Stock_Name.lower() == stock_name.lower():
                     return f
-    # Fallback — kalau LLM jawab diluar featured stocks
+    # Mitigate if LLM Reasoning out of track
+    import random
     return random.choice(featured_stocks)
 
 
