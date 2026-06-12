@@ -264,9 +264,9 @@ def run_simulation():
             report = generate_report(iteration, market_condition, snapshots_points)
             reports.append(report)
 
-            print(f"\nMONTHLY REPORT {report.month}:")
-            print(f"Profits  : {report.agents_profiting}")
-            print(f"Loss     : {report.agents_losing}")
+            print(f"\nMONTHLY REPORT {report.Iteration_Month}:")
+            print(f"Profits  : {report.agents_profits}")
+            print(f"Loss     : {report.agents_loss}")
             print(f"Bankrupt : {report.agents_bankrupt}")
             print(f"Avg Pts  : {report.avg_financial_points}")
 
