@@ -252,10 +252,10 @@ def run_simulation():
             #-- TODO: This prints taken from Claude
             status = "Going UP" if outcome > 0 else ("Going DOWN" if outcome < 0 else "Stable")
             print(f"   {status} {agent.Agent_name} "
-                  f"→ {decision.stock.Stock_Name} "
+                  f"| Stock to buy: {decision.stock.Stock_Name} "
                   f"| outcome: {outcome:+d} "
                   f"| {previous_points} → {agent.financial_points} pts")
-            print(f"   💬 \"{reasoning}\"")
+            print(f"| Reason from agent {agent.Agent_name} : \"{reasoning}\"")
 
             if agent.is_bankrupt:
                 bankruptcy_summary(agent)

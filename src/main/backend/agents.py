@@ -35,11 +35,11 @@ agents_pool =[
     ),
     AgentProfile(
         Agent_name="Eriko",
-        economic_level="low",
+        economic_level="upper-middle",
         literacy_level="high",
         fomo_level="low",
         tendency="neutral",
-        personality="herd-follower"
+        personality="analytical"
     ),
     AgentProfile(
         Agent_name="Lauren",
