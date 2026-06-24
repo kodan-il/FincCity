@@ -1,0 +1,133 @@
+import {useState, useEffect} from 'react';
+import type { AgentTrait } from '../types/agents.ts';
+
+const API_BASE = 'http://localhost:8000/api';
+
+export default function SimulationDashboard(){
+      const [agents, setAgents] = useState<AgentTrait[]>([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState<string | null>(null);
+
+      useEffect(() => {
+        const fetchAgents = async () => {
+          try {
+            setLoading(true);
+            const res = await fetch(`${API_BASE}/agents`);
+            if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+            const data: AgentTrait[] = await res.json();
+            setAgents(data);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchAgents();
+      }, []);
+
+      const leaderboard = [...agents].sort(
+        (a, b) => b.financial_points - a.financial_points
+      );
+
+      if (loading) {
+        return (
+          <div className="flex h-full w-full items-center justify-center text-slate-500">
+            Loading agents...
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="flex h-full w-full items-center justify-center text-red-500">
+            Failed to load agents: {error}
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex h-full w-full overflow-hidden">
+          <div className="flex-1 p-6 overflow-y-auto space-y-6">
+            <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+              <div className="flex border-b border-slate-800 pb-3 gap-2">
+                <button className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400">
+                  All Agents ({agents.length})
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-4 pt-4">
+                {agents.map((agent) => (
+                  <div
+                    key={agent.Agent_name}
+                    className="flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-sm"
+                  >
+                    <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center text-lg font-bold text-white">
+                      {agent.Agent_name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">
+                        {agent.Agent_name}
+                        {agent.is_bankrupt && ' 💀'}
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Points:{' '}
+                        <span
+                          className={
+                            agent.is_bankrupt ? 'text-red-400' : 'text-emerald-400'
+                          }
+                        >
+                          {agent.financial_points} P
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+                <h2 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">
+                  Leaderboard
+                </h2>
+                <ol className="space-y-2 text-sm">
+                  {leaderboard.map((agent, idx) => (
+                    <li
+                      key={agent.Agent_name}
+                      className="flex justify-between text-slate-300"
+                    >
+                      <span>
+                        {idx + 1}. {agent.Agent_name}
+                      </span>
+                      <span className="text-emerald-400">
+                        {agent.financial_points} P
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+                <h2 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">
+                  Chart Real-time
+                </h2>
+                <p className="text-xs text-slate-500">
+                  D3.js Line Chart component goes here... (needs tick-history endpoint)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <aside className="w-80 border-l border-slate-800 bg-slate-900 p-6 flex flex-col">
+            <div className="border-b border-slate-800 pb-4 mb-4">
+              <h2 className="text-lg font-bold text-white tracking-wide">
+                Agent Diary.
+              </h2>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 text-sm">
+              <p className="text-xs text-slate-500 italic">
+                Diary placeholder — needs an endpoint that returns last LLM reasoning per agent.
+              </p>
+            </div>
+          </aside>
+        </div>
+      );
+    }
