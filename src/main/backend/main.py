@@ -15,10 +15,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global variable to track simulation status
 simulation_status = {
     "running": False, 
     "finished": False,
     "current_tick" :0}
+
 
 def run_simulation_background():
     simulation_status["running"] = True
@@ -35,6 +37,7 @@ def run_simulation_background():
 def get_agents():
     return agents_pool
 
+# Sync agent endpoint to update agent parameters
 @app.post("/api/agents/sync", response_model=AgentProfile)
 def sync_agent(updated_agent: AgentProfile):
     for i, agent in enumerate(agents_pool):
@@ -43,7 +46,7 @@ def sync_agent(updated_agent: AgentProfile):
             return updated_agent
     raise HTTPException(status_code=404, detail="Agent not found")
 
-
+# Simulation endpoints
 @app.post("/api/simulation/start-simulation")
 def start_simulation(background_tasks: BackgroundTasks):
     if simulation_status["running"]:

@@ -14,7 +14,7 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1"
 )
 
-#-- TODO: create description about high volatile outcomes and weights for random generator
+# description about high volatile outcomes and weights for random generator
 HIGH_VOLATILE_OUTCOMES = [-4,-3,-2,-1, 0, 1, 2, 3, 4]
 HVO_WEIGHTS_NORMAL =     [20,20,15,15,10,10,10, 5, 5]
 HVO_WEIGHTS_BULL =       [ 5, 5, 5,10,10,15,20,20,20]
@@ -24,6 +24,7 @@ STABLE_OUTCOME_NORMAL = 1
 STABLE_OUTCOME_BEAR = 1
 STABLE_OUTCOME_BULL = 2
 
+# Global variable to track the live state of the simulation
 live_state = {
     "current_tick": 0,
     "current_month": 0,
@@ -32,7 +33,9 @@ live_state = {
     "diary_entries": []
 }
 
+# Vocal threshold for determining if an agent's outcome is significant enough to be logged in the diary entries
 VOCAL_THRESHOLD = 3
+
 #-- Setting up the market condition on this iteration
 def get_market_condition() -> MarketCondition:
     market_condition = random.choice(get_args(MARKET_CONDITIONS))
@@ -204,10 +207,12 @@ def run_simulation():
             previous_points = agent.financial_points
             agent_update(agent, decision.stock, outcome, iteration)
             
+            # Update the live state with the current tick, month, market condition, and diary entries
             live_state["current_tick"] = iteration
             live_state["current_month"] = ((iteration -1) //2) + 1
             live_state["market_condition"] = market_condition.condition
 
+            # Determine if the agent's outcome is significant enough to be logged in the diary entries
             is_vocal = agent.is_bankrupt or abs(outcome) >= VOCAL_THRESHOLD
             if is_vocal:
                 live_state["diary_entries"].append({
@@ -230,6 +235,7 @@ def run_simulation():
             if agent.is_bankrupt:
                 bankruptcy_summary(agent)
 
+        # Update the live state with the current financial points of all agents
         live_state["agent_snapshots"] = [{
             "Agent_name": agent.Agent_name,
             "financial_points": agent.financial_points,

@@ -3,6 +3,7 @@ import type { AgentTrait } from '../types/agents.ts';
 
 const API_BASE = 'http://localhost:8000/api';
 
+// Define interfaces for live simulation data
 interface LiveAgentSnapshot {
   Agent_name: string;
   financial_points: number;
@@ -27,6 +28,7 @@ interface LiveState {
 }
 
 export default function SimulationDashboard(){
+  // State variables
   const [agents, setAgents] = useState<AgentTrait[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function SimulationDashboard(){
   const [starting, setStarting] = useState(false);
   const [liveState, setLiveState] = useState<LiveState | null>(null);
 
+  // Fetch agents and simulation status on component mount
   useEffect(() => {
     const fetchAgents = async () => {
       try {
@@ -51,6 +54,7 @@ export default function SimulationDashboard(){
     fetchAgents();
   }, []);
 
+  // Periodically fetch simulation status and live state
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -76,6 +80,8 @@ export default function SimulationDashboard(){
     }, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  // Function to start the simulation
   const handleStartSimulation = async () => {
     try {
       setStarting(true);
@@ -90,11 +96,13 @@ export default function SimulationDashboard(){
       setStarting(false);
     }
   };
-      
+  
+  // Sort agents for leaderboard display
   const leaderboard = [...agents].sort(
     (a, b) => b.financial_points - a.financial_points
   );
 
+  // Render loading, error, or main content based on state
   if (loading) {
     return (
       <div className="flex h-full w-full items-center justify-center text-slate-500">
@@ -102,7 +110,6 @@ export default function SimulationDashboard(){
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="flex h-full w-full items-center justify-center text-red-500">
@@ -110,7 +117,7 @@ export default function SimulationDashboard(){
       </div>
     );
   }
-
+  //
   const liveAgents = liveState?.agent_snapshots ?? agents;
   const liveLeaderboard = [...liveAgents].sort(
     (a, b) => b.financial_points - a.financial_points
@@ -124,6 +131,7 @@ export default function SimulationDashboard(){
             <button className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400">
               All Agents ({agents.length})
             </button>
+            // Start Simulation Button
             <button 
                 onClick={handleStartSimulation}
                 disabled={simRunning || starting}
@@ -131,6 +139,7 @@ export default function SimulationDashboard(){
                 {simRunning ? 'Simulation Running...' : starting ? 'Starting...' : 'Start Simulation'}
             </button>
           </div>
+          // Display agents in a grid
           <div className="grid grid-cols-3 gap-4 pt-4">
               {agents.map((agent) => (
                 <div
@@ -159,6 +168,7 @@ export default function SimulationDashboard(){
               ))}
           </div>
         </section>
+        //
         <div className="grid grid-cols-2 gap-6">
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">
@@ -190,6 +200,8 @@ export default function SimulationDashboard(){
           </div>
         </div>
       </div>
+
+      // Diary Sidebar: All agents' diary entries for more than 3 points update
       <aside className="w-80 border-l border-slate-800 bg-slate-900 p-6 flex flex-col">
         <div className="border-b border-slate-800 pb-4 mb-4">
           <h2 className="text-lg font-bold text-white tracking-wide">
