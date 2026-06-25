@@ -131,7 +131,6 @@ export default function SimulationDashboard(){
             <button className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400">
               All Agents ({agents.length})
             </button>
-            // Start Simulation Button
             <button 
                 onClick={handleStartSimulation}
                 disabled={simRunning || starting}
@@ -139,7 +138,6 @@ export default function SimulationDashboard(){
                 {simRunning ? 'Simulation Running...' : starting ? 'Starting...' : 'Start Simulation'}
             </button>
           </div>
-          // Display agents in a grid
           <div className="grid grid-cols-3 gap-4 pt-4">
               {agents.map((agent) => (
                 <div
@@ -168,7 +166,6 @@ export default function SimulationDashboard(){
               ))}
           </div>
         </section>
-        //
         <div className="grid grid-cols-2 gap-6">
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">
@@ -201,7 +198,6 @@ export default function SimulationDashboard(){
         </div>
       </div>
 
-      // Diary Sidebar: All agents' diary entries for more than 3 points update
       <aside className="w-80 border-l border-slate-800 bg-slate-900 p-6 flex flex-col">
         <div className="border-b border-slate-800 pb-4 mb-4">
           <h2 className="text-lg font-bold text-white tracking-wide">
