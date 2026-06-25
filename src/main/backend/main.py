@@ -3,6 +3,7 @@ from simulation import run_simulation
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import AgentProfile
 from agents import agents_pool
+from simulation import live_state
 
 
 app = FastAPI()
@@ -53,5 +54,9 @@ def start_simulation(background_tasks: BackgroundTasks):
 @app.get("/api/simulation/status")
 def get_simulation_status():
     return simulation_status
+
+@app.get("/api/simulation/live-state")
+def get_live_state():
+    return live_state
 # if __name__ == "__main__":
 #     run_simulation()

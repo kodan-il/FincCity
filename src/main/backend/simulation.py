@@ -24,6 +24,15 @@ STABLE_OUTCOME_NORMAL = 1
 STABLE_OUTCOME_BEAR = 1
 STABLE_OUTCOME_BULL = 2
 
+live_state = {
+    "current_tick": 0,
+    "current_month": 0,
+    "market_condition": "",
+    "agent_snapshots": [],
+    "diary_entries": []
+}
+
+VOCAL_THRESHOLD = 3
 #-- Setting up the market condition on this iteration
 def get_market_condition() -> MarketCondition:
     market_condition = random.choice(get_args(MARKET_CONDITIONS))
@@ -194,6 +203,21 @@ def run_simulation():
             outcome        = calculate_outcome(decision, market_condition)
             previous_points = agent.financial_points
             agent_update(agent, decision.stock, outcome, iteration)
+            
+            live_state["current_tick"] = iteration
+            live_state["current_month"] = ((iteration -1) //2) + 1
+            live_state["market_condition"] = market_condition.condition
+
+            is_vocal = agent.is_bankrupt or abs(outcome) >= VOCAL_THRESHOLD
+            if is_vocal:
+                live_state["diary_entries"].append({
+                    "Agent_name": agent.Agent_name,
+                    "reasoning": reasoning,
+                    "tick": iteration,
+                    "type": "bankrupt" if agent.is_bankrupt else "swing",
+                    "outcome": outcome
+                })
+                live_state["diary_entries"] = live_state["diary_entries"][-30:]  # Keep only the last 30 entries
 
             #-- TODO: This prints taken from Claude
             status = "Going UP" if outcome > 0 else ("Going DOWN" if outcome < 0 else "Stable")
@@ -205,6 +229,13 @@ def run_simulation():
 
             if agent.is_bankrupt:
                 bankruptcy_summary(agent)
+
+        live_state["agent_snapshots"] = [{
+            "Agent_name": agent.Agent_name,
+            "financial_points": agent.financial_points,
+            "current_asset_allocation": agent.current_asset_allocation,
+            "is_bankrupt": agent.is_bankrupt
+        } for agent in agents_pool]
 
         if iteration % 2 == 0:
             report = generate_report(iteration, market_condition, snapshots_points)
