@@ -61,60 +61,6 @@ def get_featured_stock() -> list[FeaturedStock]:
 
     return result_featured_stock
 
-#-- Logic on whether agents are going pick the stocks
-#def agent_pick_stocks(agent: AgentProfile, featured_stocks: list[FeaturedStock]) -> FeaturedStock:
-    #-- TODO might need to remove this methods
-    # hvo_chance = 50
-    #
-    # volatile_option = [volatile_stock for volatile_stock in featured_stocks if volatile_stock.stock.Stock_Type == "high_volatile"]
-    # stable_option = [stable_stock for stable_stock in featured_stocks if stable_stock.stock.Stock_Type == "stable"]
-    #
-    # # Literacy level — the higher the literacy, the more probability avoiding the high volatile
-    # if agent.literacy_level == "high":
-    #     hvo_chance -= 20
-    # elif agent.literacy_level == "low":
-    #     hvo_chance += 20
-    # logging.info("chance to buy after literacy calc : " + str(hvo_chance))
-    #
-    # # FOMO level — The higher the fomo, the more intrigued the chance of getting the stock
-    # if agent.fomo_level == "high":
-    #     hvo_chance += 15
-    # elif agent.fomo_level == "low":
-    #     hvo_chance -= 15
-    # logging.info("chance to buy after fomo calc : " + str(hvo_chance))
-    #
-    # # Tendency
-    # if agent.tendency == "risk-seeking":
-    #     hvo_chance += 15
-    # elif agent.tendency == "risk-averse":
-    #     hvo_chance -= 15
-    # logging.info("chance to buy after tendency calc : " + str(hvo_chance))
-    #
-    # # Personality
-    # if agent.personality == "impulsive":
-    #     hvo_chance += 10
-    # elif agent.personality == "analytical":
-    #     hvo_chance -= 10
-    # elif agent.personality == "herd-follower":
-    #     hvo_chance += 5
-    # elif agent.personality == "contrarian":
-    #     hvo_chance -= 5
-    # logging.info("chance to buy after personality calc : " + str(hvo_chance))
-    #
-    # # Make sure the chance between 5% to 95%
-    # hvo_chance = max(5, min(95, hvo_chance))
-    # logging.info("Total urge to buy : " + str(hvo_chance))
-    #
-    # # choose whether the high volatile stock is chosen or not
-    # go_hvo = random.random() * 100 < hvo_chance
-
-    # if go_hvo and volatile_option:
-    #     return random.choice(volatile_option)
-    # elif stable_option:
-    #     return random.choice(stable_option)
-    # else:
-    #     return random.choice(featured_stocks)
-
 #-- calculate the outcome of the stocks
 def calculate_outcome(featured: FeaturedStock, market: MarketCondition) -> int:
     if featured.stock.Stock_Type == "stable":

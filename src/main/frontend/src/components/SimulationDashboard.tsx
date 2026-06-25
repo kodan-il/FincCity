@@ -7,6 +7,8 @@ export default function SimulationDashboard(){
       const [agents, setAgents] = useState<AgentTrait[]>([]);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState<string | null>(null);
+      const [simRunning, setSimRunning] = useState(false);
+      const [starting, setStarting] = useState(false);
 
       useEffect(() => {
         const fetchAgents = async () => {
@@ -25,6 +27,35 @@ export default function SimulationDashboard(){
         fetchAgents();
       }, []);
 
+      useEffect(() => {
+        const interval = setInterval(async () => {
+          try {
+            const res = await fetch(`${API_BASE}/agents`);
+            const data = await res.json();
+            setSimRunning(data.running);
+          } catch (err) {
+            // Handle error silently for periodic fetch
+          }
+        }, 2000);
+        return () => clearInterval(interval);
+
+      }, []);
+
+      const handleStartSimulation = async () => {
+        try {
+          setStarting(true);
+          const res = await fetch(`${API_BASE}/simulation/start-simulation`, { method: 'POST' });
+          const data = await res.json();
+          if(data.status === 'started'){
+            setSimRunning(true);
+          }
+        } catch (err) {
+          // Handle error silently for start simulation
+        } finally {
+          setStarting(false);
+        }
+      };
+      
       const leaderboard = [...agents].sort(
         (a, b) => b.financial_points - a.financial_points
       );
@@ -52,6 +83,14 @@ export default function SimulationDashboard(){
               <div className="flex border-b border-slate-800 pb-3 gap-2">
                 <button className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400">
                   All Agents ({agents.length})
+                </button>
+                <button 
+
+                  // onClick={() => alert('clicked')}
+                  onClick={handleStartSimulation}
+                  disabled={simRunning || starting}
+                  className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed">
+                  {simRunning ? 'Simulation Running...' : starting ? 'Starting...' : 'Start Simulation'}
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-4 pt-4">
