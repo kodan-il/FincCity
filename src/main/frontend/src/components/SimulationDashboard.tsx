@@ -1,227 +1,182 @@
-import {useState, useEffect} from 'react';
-import type { AgentTrait } from '../types/agents.ts';
+import { useEffect, useMemo, useState } from 'react'
+import type { AgentTrait } from '../types/agents.ts'
+import CitizenCard, { type CitizenCardAgent } from './citizens/CitizenCard.tsx'
+import LeaderboardPanel from './leaderboard/LeaderboardPanel.tsx'
+import DiaryBubble, { type DiaryBubbleEntry } from './diary/DiaryBubble.tsx'
+import MarketPlaceholder from './market/MarketPlaceholder.tsx'
+import RibbonTitle from './ui/RibbonTitle.tsx'
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://127.0.0.1:8000/api'
 
-// Define interfaces for live simulation data
 interface LiveAgentSnapshot {
-  Agent_name: string;
-  financial_points: number;
-  current_asset_allocation: string;
-  is_bankrupt: boolean;
-}
-
-interface DiaryEntry {
-  Agent_name: string;
-  reasoning: string;
-  tick: number;
-  type: 'bankrupt' | 'swing';
-  outcome: number;
+  Agent_name: string
+  financial_points: number
+  current_asset_allocation: string
+  is_bankrupt: boolean
 }
 
 interface LiveState {
-  current_tick: number;
-  current_month: number;
-  market_condition: string;
-  agent_snapshots: LiveAgentSnapshot[];
-  diary_entries: DiaryEntry[];
+  current_tick: number
+  current_month: number
+  market_condition: string
+  agent_snapshots: LiveAgentSnapshot[]
+  diary_entries: DiaryBubbleEntry[]
 }
 
-export default function SimulationDashboard(){
-  // State variables
-  const [agents, setAgents] = useState<AgentTrait[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [simRunning, setSimRunning] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const [liveState, setLiveState] = useState<LiveState | null>(null);
+interface SimulationDashboardProps {
+  onLiveMetaChange?: (tick?: number, marketMood?: string) => void
+}
 
-  // Fetch agents and simulation status on component mount
+export default function SimulationDashboard({ onLiveMetaChange }: SimulationDashboardProps) {
+  const [agents, setAgents] = useState<AgentTrait[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [simRunning, setSimRunning] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const [liveState, setLiveState] = useState<LiveState | null>(null)
+
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        setLoading(true);
-        const res = await fetch(`${API_BASE}/agents`);
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-          const data: AgentTrait[] = await res.json();
-          setAgents(data);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Unknown error');
-        } finally {
-          setLoading(false);
-        }
-      };
-    fetchAgents();
-  }, []);
-
-  // Periodically fetch simulation status and live state
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/simulation/status`);
-        const data = await res.json();
-        setSimRunning(data.running);
+        setLoading(true)
+        const res = await fetch(`${API_BASE}/agents`)
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`)
+        const data: AgentTrait[] = await res.json()
+        setAgents(data)
       } catch (err) {
-        // Handle error silently for periodic fetch
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
       }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    }
+    fetchAgents()
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE}/simulation/live-state`);
-        const data: LiveState = await res.json();
-        setLiveState(data);
-      } catch (err) {
-        // Handle error silently for periodic fetch
+        const res = await fetch(`${API_BASE}/simulation/status`)
+        const data = await res.json()
+        setSimRunning(data.running)
+      } catch {
+        // Ignore polling errors so the UI does not flicker.
       }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    }, 1600)
+    return () => clearInterval(interval)
+  }, [])
 
-  // Function to start the simulation
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/simulation/live-state`)
+        const data: LiveState = await res.json()
+        setLiveState(data)
+        onLiveMetaChange?.(data.current_tick, data.market_condition)
+      } catch {
+        // Live-state may not exist before the first simulation starts.
+      }
+    }, 1600)
+    return () => clearInterval(interval)
+  }, [onLiveMetaChange])
+
   const handleStartSimulation = async () => {
     try {
-      setStarting(true);
-      const res = await fetch(`${API_BASE}/simulation/start-simulation`, { method: 'POST' });
-      const data = await res.json();
-      if (data.status === 'Simulation started' || data.status === 'started') {
-        setSimRunning(true);
-      }
-    } catch (err) {
-      // Handle error silently for start simulation
+      setStarting(true)
+      const res = await fetch(`${API_BASE}/simulation/start-simulation`, { method: 'POST' })
+      const data = await res.json()
+      if (data.status === 'Simulation started' || data.status === 'started') setSimRunning(true)
     } finally {
-      setStarting(false);
+      setStarting(false)
     }
-  };
-  
-  // Sort agents for leaderboard display
-  const leaderboard = [...agents].sort(
-    (a, b) => b.financial_points - a.financial_points
-  );
+  }
 
-  // Render loading, error, or main content based on state
+  const liveAgents = (liveState?.agent_snapshots ?? agents) as CitizenCardAgent[]
+  const agentBaseByName = useMemo(() => new Map(agents.map((agent) => [agent.Agent_name, agent])), [agents])
+  const liveLeaderboard = [...liveAgents].sort((a, b) => b.financial_points - a.financial_points)
+  const diaryEntries = liveState?.diary_entries ?? []
+
   if (loading) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-slate-500">
-        Loading agents...
+      <div className="flex h-full items-center justify-center">
+        <div className="empty-state-card">
+          <div className="mb-3 text-5xl animate-bounce">🏗️</div>
+          <p className="text-lg font-black text-slate-700">Building FinnCity...</p>
+        </div>
       </div>
-    );
+    )
   }
+
   if (error) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-red-500">
-        Failed to load agents: {error}
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="empty-state-card border-red-100">
+          <div className="mb-3 text-5xl">🚧</div>
+          <p className="font-black text-red-500">Failed to load agents: {error}</p>
+        </div>
       </div>
-    );
+    )
   }
-  //
-  const liveAgents = liveState?.agent_snapshots ?? agents;
-  const liveLeaderboard = [...liveAgents].sort(
-    (a, b) => b.financial_points - a.financial_points
-  );
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      <div className="flex-1 p-6 overflow-y-auto space-y-6">
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-          <div className="flex border-b border-slate-800 pb-3 gap-2">
-            <button className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400">
-              All Agents ({agents.length})
-            </button>
-            <button 
-                onClick={handleStartSimulation}
-                disabled={simRunning || starting}
-                className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 text-sm font-medium text-emerald-400 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed">
-                {simRunning ? 'Simulation Running...' : starting ? 'Starting...' : 'Start Simulation'}
+    <div className="dashboard-grid h-full min-h-0 overflow-y-auto p-4 xl:overflow-hidden xl:p-6">
+      <div className="min-h-0 space-y-5 xl:overflow-y-auto xl:pr-1">
+        <section className="cartoon-panel citizens-panel p-4 md:p-5">
+          <div className="mb-4 flex flex-col gap-3 border-b-2 border-dashed border-emerald-100 pb-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <RibbonTitle tone="amber">⭐ All Citizens ({agents.length})</RibbonTitle>
+              <p className="mt-2 text-sm font-bold text-slate-500">Tap start and watch every citizen make money decisions.</p>
+            </div>
+
+            <button
+              onClick={handleStartSimulation}
+              disabled={simRunning || starting}
+              className="start-button disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="text-xl">{simRunning ? '⏳' : starting ? '✨' : '▶️'}</span>
+              {simRunning ? 'Simulation running' : starting ? 'Starting city...' : 'Start Simulation'}
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-4 pt-4">
-              {agents.map((agent) => (
-                <div
-                  key={agent.Agent_name}
-                  className="flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-sm"
-                >
-                <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center text-lg font-bold text-white">
-                  {agent.Agent_name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">
-                    {agent.Agent_name}
-                    {agent.is_bankrupt && ' 💀'}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Points:{' '}
-                    <span
-                      className={
-                        agent.is_bankrupt ? 'text-red-400' : 'text-emerald-400'
-                      }>
-                      {agent.financial_points} P
-                    </span>
-                  </p>
-                </div>
-              </div>
-              ))}
+
+          <div className="citizen-grid">
+            {liveAgents.map((liveAgent) => {
+              const baseAgent = agentBaseByName.get(liveAgent.Agent_name)
+              return (
+                <CitizenCard
+                  key={liveAgent.Agent_name}
+                  agent={liveAgent}
+                  fallbackAllocation={baseAgent?.current_asset_allocation}
+                />
+              )
+            })}
           </div>
         </section>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">
-              Leaderboard {liveState ? `(Tick: ${liveState.current_tick})` : ''}
-            </h2>
-            <ol className="space-y-2 text-sm">
-              {liveLeaderboard.map((agent, idx) => (
-                <li
-                  key={agent.Agent_name}
-                  className="flex justify-between text-slate-300"
-                >
-                  <span>
-                    {idx + 1}. {agent.Agent_name}
-                  </span>
-                  <span className="text-emerald-400">
-                    {agent.financial_points} P
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="text-sm font-semibold tracking-wider text-slate-400 uppercase mb-4">
-              Chart Real-time
-            </h2>
-            <p className="text-xs text-slate-500">
-              D3.js Line Chart component goes here... (needs tick-history endpoint)
-            </p>
-          </div>
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(320px,1.1fr)]">
+          <LeaderboardPanel agents={liveLeaderboard} tick={liveState?.current_tick} />
+          <MarketPlaceholder />
         </div>
       </div>
 
-      <aside className="w-80 border-l border-slate-800 bg-slate-900 p-6 flex flex-col">
-        <div className="border-b border-slate-800 pb-4 mb-4">
-          <h2 className="text-lg font-bold text-white tracking-wide">
-            Agent Diary.
-          </h2>
+      <aside className="cartoon-panel diary-panel min-h-[420px] p-5 xl:min-h-0 xl:overflow-hidden">
+        <div className="sticky top-0 z-10 mb-4 bg-transparent pb-2">
+          <RibbonTitle tone="blue">📖 Agent Diary</RibbonTitle>
+          <p className="mt-3 text-sm font-bold text-slate-500">Fresh thoughts from the citizens of FinnCity.</p>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-4 text-sm text-slate-400">
-          {!liveState || liveState.diary_entries.length === 0 ? (
-            <p className="text-slate-500">No diary entries yet...</p>
+
+        <div className="diary-scroll space-y-4 xl:max-h-[calc(100vh-250px)] xl:overflow-y-auto xl:pr-2">
+          {diaryEntries.length === 0 ? (
+            <div className="rounded-[24px] border-2 border-dashed border-amber-200 bg-amber-50/80 p-6 text-center">
+              <div className="text-5xl">💌</div>
+              <p className="mt-3 font-black text-slate-700">No diary entries yet...</p>
+              <p className="mt-1 text-sm font-bold text-slate-500">Start the simulation to hear from everyone.</p>
+            </div>
           ) : (
-            [...liveState.diary_entries].reverse().map((entry, idx) => (
-              <div
-                key={`${entry.Agent_name}-${entry.tick}-${idx}`}
-                className={`rounded-lg bg-slate-950 p-3 border-l-2 " ${
-                  entry.type === 'bankrupt' ? 'border-red-500' : 'border-amber-500'
-                }`}>
-                <span className="font-semibold text-white">{entry.Agent_name}</span>
-                <span className="text-slate-500 text-xs ml-2">Tick #{entry.tick}</span>
-                <p className="text-slate-300 mt-1">{entry.reasoning}</p>
-              </div>
+            [...diaryEntries].reverse().map((entry, idx) => (
+              <DiaryBubble key={`${entry.Agent_name}-${entry.tick}-${idx}`} entry={entry} />
             ))
           )}
         </div>
       </aside>
     </div>
-  );
+  )
 }
