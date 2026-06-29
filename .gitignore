@@ -3,6 +3,12 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Environment variables
+src/main/backend/.env
+
+# Local API configuration
+src/main/backend/settings.py
+
 # C extensions
 *.so
 
