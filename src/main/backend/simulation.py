@@ -8,6 +8,7 @@ from prompts import build_prompt, parse_decision, parse_reasoning
 from openai import OpenAI, responses
 from prompts import build_prompt
 from settings import OPENAI_API_KEY, LLM_VERS
+from player import resolve_bet_after_tick
 
 client = OpenAI(
     api_key=OPENAI_API_KEY,
@@ -172,6 +173,7 @@ def run_simulation():
         # -- Setting up market condition on the start
         market_condition = get_market_condition()
         print(f"Market: {market_condition.condition} - {market_condition.description}")
+        tick_start_points = {agent.Agent_name: agent.financial_points for agent in agents_pool}
 
         #-- Setting up stock trend
         featured_stock = get_featured_stock()
@@ -242,6 +244,9 @@ def run_simulation():
             "current_asset_allocation": agent.current_asset_allocation,
             "is_bankrupt": agent.is_bankrupt
         } for agent in agents_pool]
+
+        tick_end_points = {agent.Agent_name: agent.financial_points for agent in agents_pool}
+        resolve_bet_after_tick(iteration, tick_start_points, tick_end_points)
 
         if iteration % 2 == 0:
             report = generate_report(iteration, market_condition, snapshots_points)

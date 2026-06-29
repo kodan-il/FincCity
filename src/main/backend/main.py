@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from simulation import run_simulation
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from schemas import AgentProfile
 from agents import agents_pool
 from simulation import live_state
+from player import get_player_state, place_bet, reset_player_state
 
 
 app = FastAPI()
@@ -22,6 +24,11 @@ app.add_middleware(
 )
 
 # Global variable to track simulation status
+
+class BetRequest(BaseModel):
+    agent_name: str
+    amount: int
+
 simulation_status = {
     "running": False, 
     "finished": False,
@@ -67,5 +74,26 @@ def get_simulation_status():
 @app.get("/api/simulation/live-state")
 def get_live_state():
     return live_state
+
+@app.get("/api/player")
+def get_player():
+    return get_player_state()
+
+@app.post("/api/player/bet")
+def create_bet(bet: BetRequest):
+    try:
+        valid_agent_names = [agent.Agent_name for agent in agents_pool]
+        return place_bet(
+            agent_name=bet.agent_name,
+            amount=bet.amount,
+            current_tick=live_state.get("current_tick", 0),
+            valid_agent_names=valid_agent_names,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+@app.post("/api/player/reset")
+def reset_player():
+    return reset_player_state()
 # if __name__ == "__main__":
 #     run_simulation()

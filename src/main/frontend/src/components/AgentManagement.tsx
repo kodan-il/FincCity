@@ -1,8 +1,8 @@
 // components/AgentManagement.tsx
-import { useState, useEffect } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { AgentTrait } from '../types/agents.ts';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://127.0.0.1:8000/api';
 
 const ECONOMIC_LABELS: Record<AgentTrait['economic_level'], string> = {
   low: 'Lower Class',
@@ -11,29 +11,46 @@ const ECONOMIC_LABELS: Record<AgentTrait['economic_level'], string> = {
 };
 
 const LITERACY_LABELS: Record<AgentTrait['literacy_level'], string> = {
-  low: 'Low Literacy (High Risk Bias)',
+  low: 'Low Literacy',
   medium: 'Medium Literacy',
-  high: 'High Literacy (Risk-Aware)',
+  high: 'High Literacy',
 };
 
 const FOMO_LABELS: Record<AgentTrait['fomo_level'], string> = {
-  low: 'Low (Stable Mindset)',
-  medium: 'Medium',
-  high: 'High (Highly Vulnerable to Volatility)',
+  low: 'Low FOMO',
+  medium: 'Medium FOMO',
+  high: 'High FOMO',
 };
 
 const TENDENCY_LABELS: Record<AgentTrait['tendency'], string> = {
-  'risk-averse': 'Risk-Averse (Capital Preservation)',
+  'risk-averse': 'Risk-Averse',
   neutral: 'Neutral',
-  'risk-seeking': 'Risk-Seeking (Aggressive Speculation)',
+  'risk-seeking': 'Risk-Seeking',
 };
 
 const PERSONALITY_LABELS: Record<AgentTrait['personality'], string> = {
-  impulsive: 'Impulsive (Gut Reaction)',
-  analytical: 'Analytical (Calculated)',
-  'herd-follower': 'Herd-Follower (Social Validation)',
-  contrarian: 'Contrarian (Anti-Trend)',
+  impulsive: 'Impulsive',
+  analytical: 'Analytical',
+  'herd-follower': 'Herd-Follower',
+  contrarian: 'Contrarian',
 };
+
+const AGENT_META: Record<string, { emoji: string; title: string; home: string }> = {
+  Bryan: { emoji: '👦🏻', title: 'Curious saver', home: 'Blueberry Lane' },
+  Bernard: { emoji: '🧑🏾‍💼', title: 'Careful planner', home: 'Ledger Street' },
+  Barbara: { emoji: '👩🏽‍🦱', title: 'Trend watcher', home: 'Market Square' },
+  Richard: { emoji: '🧑🏻‍💻', title: 'Number cruncher', home: 'Compass Court' },
+  Eriko: { emoji: '👩🏼‍💻', title: 'Market dreamer', home: 'Pixel Pier' },
+  Lauren: { emoji: '👩🏻‍🎤', title: 'Future focused', home: 'Garden Row' },
+  Micah: { emoji: '🎧', title: 'Chill investor', home: 'Lo-fi Loft' },
+  Lucius: { emoji: '😎', title: 'Bold mover', home: 'Rocket Road' },
+  Anne: { emoji: '👩🏽‍🚀', title: 'Risk explorer', home: 'Orbit Avenue' },
+  Michelle: { emoji: '👩🏻‍💼', title: 'Stable strategist', home: 'Harbor House' },
+};
+
+function getAgentMeta(name: string) {
+  return AGENT_META[name] ?? { emoji: '🙂', title: 'Citizen investor', home: 'FinnCity' };
+}
 
 export default function AgentManagement() {
   const [agents, setAgents] = useState<AgentTrait[]>([]);
@@ -51,6 +68,10 @@ export default function AgentManagement() {
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         const data: AgentTrait[] = await res.json();
         setAgents(data);
+        if (data.length > 0) {
+          setSelectedAgent(data[0]);
+          setOriginalAgent(data[0]);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -61,16 +82,13 @@ export default function AgentManagement() {
   }, []);
 
   const handleSelectAgent = (agentName: string) => {
-    const found = agents.find((a) => a.Agent_name === agentName);
-    setSelectedAgent(found ?? null);
-    setOriginalAgent(found ?? null);
+    const found = agents.find((a) => a.Agent_name === agentName) ?? null;
+    setSelectedAgent(found);
+    setOriginalAgent(found);
     setError(null);
   };
 
-  const handleTraitChange = <K extends keyof AgentTrait>(
-    field: K,
-    value: AgentTrait[K]
-  ) => {
+  const handleTraitChange = <K extends keyof AgentTrait>(field: K, value: AgentTrait[K]) => {
     if (!selectedAgent) return;
     setSelectedAgent({ ...selectedAgent, [field]: value });
   };
@@ -86,23 +104,24 @@ export default function AgentManagement() {
 
   const handleSyncToBackend = async () => {
     if (!selectedAgent) return;
+
     try {
       setSyncing(true);
       setError(null);
+
       const res = await fetch(`${API_BASE}/agents/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(selectedAgent),
       });
+
       if (!res.ok) {
         const detail = await res.json().catch(() => null);
         throw new Error(detail?.detail ?? `Sync failed: ${res.status}`);
       }
-      const updated: AgentTrait = await res.json();
 
-      setAgents((prev) =>
-        prev.map((a) => (a.Agent_name === updated.Agent_name ? updated : a))
-      );
+      const updated: AgentTrait = await res.json();
+      setAgents((prev) => prev.map((a) => (a.Agent_name === updated.Agent_name ? updated : a)));
       setSelectedAgent(updated);
       setOriginalAgent(updated);
     } catch (err) {
@@ -113,239 +132,187 @@ export default function AgentManagement() {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-slate-500">
-        Loading agents...
-      </div>
-    );
+    return <div className="agent-workshop-loading">Loading citizens...</div>;
   }
 
-  return (
-    <div className="h-full w-full overflow-y-auto overflow-x-hidden bg-slate-950 p-6 space-y-6">
-      {/* Header */}
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-xl font-bold text-white">
-          Agent Management System
-        </h1>
-        <p className="text-sm text-slate-500">/ finnCity Workspace</p>
-      </div>
+  const selectedMeta = selectedAgent ? getAgentMeta(selectedAgent.Agent_name) : null;
 
-      {/* Agent List */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-          <span className="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-3 -mb-3">
-            Agents List ({agents.length})
-          </span>
+  return (
+    <div className="agent-workshop-page">
+      <section className="agent-workshop-hero">
+        <div>
+          <div className="orange-ribbon">🏘 Citizen Workshop</div>
+          <h1>Tune your FinnCity citizens</h1>
+          <p>Adjust each citizen&apos;s traits before the simulation begins.</p>
+        </div>
+        <div className="workshop-stats-card">
+          <span>Total citizens</span>
+          <strong>{agents.length}</strong>
+        </div>
+      </section>
+
+      <section className="agent-roster-card">
+        <div className="section-heading-row">
+          <div>
+            <div className="purple-ribbon">👥 Citizen Roster</div>
+            <p>Pick a citizen to customize their behavior.</p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-6">
+        <div className="agent-roster-grid">
           {agents.map((agent) => {
             const isSelected = selectedAgent?.Agent_name === agent.Agent_name;
+            const meta = getAgentMeta(agent.Agent_name);
+
             return (
               <button
                 key={agent.Agent_name}
                 onClick={() => handleSelectAgent(agent.Agent_name)}
-                className="flex flex-col items-center gap-2 group"
+                className={`roster-citizen-card ${isSelected ? 'selected' : ''}`}
               >
-                <div
-                  className={`h-14 w-14 rounded-full flex items-center justify-center text-lg font-bold border-2 transition ${
-                    agent.is_bankrupt
-                      ? 'border-red-500/40 bg-slate-800 text-red-400'
-                      : isSelected
-                      ? 'border-emerald-400 bg-slate-800 text-white'
-                      : 'border-slate-700 bg-slate-800 text-slate-300 group-hover:border-slate-500'
-                  }`}
-                >
-                  {agent.Agent_name.charAt(0)}
+                <div className="roster-avatar">{meta.emoji}</div>
+                <div className="roster-info">
+                  <strong>{agent.Agent_name}</strong>
+                  <span>{meta.title}</span>
                 </div>
-                <span
-                  className={`text-xs font-medium ${
-                    isSelected ? 'text-emerald-400' : 'text-slate-400'
-                  }`}
-                >
-                  {agent.Agent_name}
-                </span>
+                <div className={agent.is_bankrupt ? 'status-pill danger' : 'status-pill'}>
+                  {agent.is_bankrupt ? 'Needs help' : `${agent.financial_points} coins`}
+                </div>
               </button>
             );
           })}
         </div>
       </section>
 
-      {/* Hyper-tuning panel */}
-      {selectedAgent && (
-        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-wider text-slate-400 uppercase mb-5">
-            ⚙ Agent Parameter Hyper-Tuning (Pydantic Sync)
-          </h2>
+      {selectedAgent && selectedMeta && (
+        <section className="agent-editor-card">
+          <div className="editor-profile-card">
+            <div className="editor-avatar">{selectedMeta.emoji}</div>
+            <h2>{selectedAgent.Agent_name}</h2>
+            <p>{selectedMeta.title} • {selectedMeta.home}</p>
+            <div className={selectedAgent.is_bankrupt ? 'wallet-pill danger' : 'wallet-pill'}>
+              {selectedAgent.is_bankrupt ? '💔 Bankrupt' : `🪙 ${selectedAgent.financial_points} coins`}
+            </div>
+            <div className="mayor-note-card">
+              <span>🐶 Mayor Pup says</span>
+              <p>Small trait changes can completely change this citizen&apos;s investment style.</p>
+            </div>
+          </div>
 
-          <div className="grid grid-cols-[200px_minmax(0,1fr)] gap-8">
-            {/* Avatar card */}
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-5">
-              <div className="h-20 w-20 rounded-full border-2 border-emerald-400 bg-slate-800 flex items-center justify-center text-2xl font-bold text-white">
-                {selectedAgent.Agent_name.charAt(0)}
+          <div className="editor-form-card">
+            <div className="section-heading-row">
+              <div>
+                <div className="green-ribbon">⚙ Trait Tuning</div>
+                <p>Sync these values back to the AI agent profile.</p>
               </div>
-              <span className="font-semibold text-white">
-                {selectedAgent.Agent_name}
-              </span>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-mono ${
-                  selectedAgent.is_bankrupt
-                    ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                }`}
-              >
-                {selectedAgent.is_bankrupt
-                  ? 'BANKRUPT'
-                  : `Wallet: ${selectedAgent.financial_points} Points`}
-              </span>
+              {hasUnsavedChanges && <span className="unsaved-badge">Unsaved changes</span>}
             </div>
 
-            {/* Form fields */}
-            <div className="grid grid-cols-2 gap-5">
-              <Field label="Agent Name">
-                <input
-                  type="text"
-                  value={selectedAgent.Agent_name}
-                  disabled
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-400 cursor-not-allowed"
-                />
+            <div className="trait-form-grid">
+              <Field label="Citizen name">
+                <input value={selectedAgent.Agent_name} disabled className="soft-input disabled" />
               </Field>
 
-              <Field label="Economic Level">
+              <Field label="Economic level">
                 <select
                   value={selectedAgent.economic_level}
                   onChange={(e) =>
-                    handleTraitChange(
-                      'economic_level',
-                      e.target.value as AgentTrait['economic_level']
-                    )
+                    handleTraitChange('economic_level', e.target.value as AgentTrait['economic_level'])
                   }
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                  className="soft-input"
                 >
                   {Object.entries(ECONOMIC_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </Field>
 
-              <Field label="Financial Literacy Level">
+              <Field label="Financial literacy">
                 <select
                   value={selectedAgent.literacy_level}
                   onChange={(e) =>
-                    handleTraitChange(
-                      'literacy_level',
-                      e.target.value as AgentTrait['literacy_level']
-                    )
+                    handleTraitChange('literacy_level', e.target.value as AgentTrait['literacy_level'])
                   }
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                  className="soft-input"
                 >
                   {Object.entries(LITERACY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </Field>
 
-              <Field label="FOMO Sensitivity Level">
+              <Field label="FOMO sensitivity">
                 <select
                   value={selectedAgent.fomo_level}
                   onChange={(e) =>
-                    handleTraitChange(
-                      'fomo_level',
-                      e.target.value as AgentTrait['fomo_level']
-                    )
+                    handleTraitChange('fomo_level', e.target.value as AgentTrait['fomo_level'])
                   }
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                  className="soft-input"
                 >
                   {Object.entries(FOMO_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </Field>
 
-              <Field label="Investment Tendency Strategy">
+              <Field label="Investment tendency">
                 <select
                   value={selectedAgent.tendency}
                   onChange={(e) =>
-                    handleTraitChange(
-                      'tendency',
-                      e.target.value as AgentTrait['tendency']
-                    )
+                    handleTraitChange('tendency', e.target.value as AgentTrait['tendency'])
                   }
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                  className="soft-input"
                 >
                   {Object.entries(TENDENCY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </Field>
 
-              <Field label="Core Cognitive Personality">
+              <Field label="Core personality">
                 <select
                   value={selectedAgent.personality}
                   onChange={(e) =>
-                    handleTraitChange(
-                      'personality',
-                      e.target.value as AgentTrait['personality']
-                    )
+                    handleTraitChange('personality', e.target.value as AgentTrait['personality'])
                   }
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                  className="soft-input"
                 >
                   {Object.entries(PERSONALITY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </Field>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-slate-800">
-            <button
-              onClick={handleResetChanges}
-              disabled={!hasUnsavedChanges}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-300 disabled:opacity-40 hover:bg-slate-700 transition"
-            >
-              Reset Changes
-            </button>
-            <button
-              onClick={handleSyncToBackend}
-              disabled={syncing || !hasUnsavedChanges}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-emerald-500 transition"
-            >
-              {syncing ? 'Syncing...' : 'Sync Trait Variables to Agent AI'}
-            </button>
-          </div>
+            <div className="editor-actions">
+              <button
+                onClick={handleResetChanges}
+                disabled={!hasUnsavedChanges}
+                className="secondary-game-button"
+              >
+                Reset Changes
+              </button>
+              <button
+                onClick={handleSyncToBackend}
+                disabled={syncing || !hasUnsavedChanges}
+                className="primary-game-button"
+              >
+                {syncing ? 'Syncing...' : 'Sync to Agent AI'}
+              </button>
+            </div>
 
-          {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+            {error && <p className="workshop-error">{error}</p>}
+          </div>
         </section>
       )}
     </div>
   );
 }
 
-// Small helper component for consistent label+field spacing
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block">
-      <span className="block text-xs font-medium text-slate-400 mb-1.5">
-        {label}
-      </span>
+    <label className="trait-field">
+      <span>{label}</span>
       {children}
     </label>
   );

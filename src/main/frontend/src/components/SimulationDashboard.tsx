@@ -3,7 +3,7 @@ import type { AgentTrait } from '../types/agents.ts'
 import CitizenCard, { type CitizenCardAgent } from './citizens/CitizenCard.tsx'
 import LeaderboardPanel from './leaderboard/LeaderboardPanel.tsx'
 import DiaryBubble, { type DiaryBubbleEntry } from './diary/DiaryBubble.tsx'
-import MarketPlaceholder from './market/MarketPlaceholder.tsx'
+import BetBooth, { type PlayerState } from './betting/BetBooth.tsx'
 import RibbonTitle from './ui/RibbonTitle.tsx'
 
 const API_BASE = 'http://127.0.0.1:8000/api'
@@ -34,6 +34,7 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
   const [simRunning, setSimRunning] = useState(false)
   const [starting, setStarting] = useState(false)
   const [liveState, setLiveState] = useState<LiveState | null>(null)
+  const [player, setPlayer] = useState<PlayerState | null>(null)
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -79,6 +80,38 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
     return () => clearInterval(interval)
   }, [onLiveMetaChange])
 
+
+  const fetchPlayer = async () => {
+    const res = await fetch(`${API_BASE}/player`)
+    if (!res.ok) throw new Error(`Player fetch failed: ${res.status}`)
+    const data: PlayerState = await res.json()
+    setPlayer(data)
+  }
+
+  useEffect(() => {
+    fetchPlayer().catch(() => undefined)
+    const interval = setInterval(() => {
+      fetchPlayer().catch(() => undefined)
+    }, 1600)
+    return () => clearInterval(interval)
+  }, [])
+
+  const handlePlaceBet = async (agentName: string, amount: number) => {
+    const res = await fetch(`${API_BASE}/player/bet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent_name: agentName, amount }),
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null)
+      throw new Error(errorData?.detail ?? 'Could not place bet')
+    }
+
+    const data: PlayerState = await res.json()
+    setPlayer(data)
+  }
+
   const handleStartSimulation = async () => {
     try {
       setStarting(true)
@@ -90,7 +123,12 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
     }
   }
 
-  const liveAgents = (liveState?.agent_snapshots ?? agents) as CitizenCardAgent[]
+  const liveAgents = (
+    liveState?.agent_snapshots &&
+      liveState.agent_snapshots.length > 0
+      ? liveState.agent_snapshots
+      : agents
+  ) as CitizenCardAgent[];
   const agentBaseByName = useMemo(() => new Map(agents.map((agent) => [agent.Agent_name, agent])), [agents])
   const liveLeaderboard = [...liveAgents].sort((a, b) => b.financial_points - a.financial_points)
   const diaryEntries = liveState?.diary_entries ?? []
@@ -153,7 +191,13 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(320px,1.1fr)]">
           <LeaderboardPanel agents={liveLeaderboard} tick={liveState?.current_tick} />
-          <MarketPlaceholder />
+          <BetBooth
+            agents={liveAgents}
+            player={player}
+            currentTick={liveState?.current_tick ?? 0}
+            simulationRunning={simRunning}
+            onPlaceBet={handlePlaceBet}
+          />
         </div>
       </div>
 
