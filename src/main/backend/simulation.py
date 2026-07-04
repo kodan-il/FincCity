@@ -31,7 +31,9 @@ live_state = {
     "current_month": 0,
     "market_condition": "",
     "agent_snapshots": [],
-    "diary_entries": []
+    "diary_entries": [],
+    "stock_history": [],
+    "agent_point_history": []
 }
 
 # Vocal threshold for determining if an agent's outcome is significant enough to be logged in the diary entries
@@ -183,6 +185,12 @@ def run_simulation():
                   f"| {feature.stock.Stock_Type} "
                   f"| trend: {feature.todays_trend}")
 
+        tick_stock_data ={
+            "tick" : iteration,
+            "stock" : []
+        }
+        
+        stock_outcomes_this_tick = {}
 
         for agent in agents_pool:
 
@@ -208,7 +216,16 @@ def run_simulation():
             outcome        = calculate_outcome(decision, market_condition)
             previous_points = agent.financial_points
             agent_update(agent, decision.stock, outcome, iteration)
-            
+
+            stock_name = decision.stock.Stock_Name
+            if stock_name not in stock_outcomes_this_tick:
+                stock_outcomes_this_tick[stock_name] = {
+                    "name": stock_name,
+                    "type": decision.stock.Stock_Type,
+                    "trend": decision.todays_trend,
+                    "outcome": outcome
+                }
+
             # Update the live state with the current tick, month, market condition, and diary entries
             live_state["current_tick"] = iteration
             live_state["current_month"] = ((iteration -1) //2) + 1
@@ -236,6 +253,20 @@ def run_simulation():
 
             if agent.is_bankrupt:
                 bankruptcy_summary(agent)
+
+
+        tick_stock_data["stock"] = list(stock_outcomes_this_tick.values())
+        live_state["stock_history"].append(tick_stock_data)
+
+        live_state["agent_point_history"].append({ 
+            "tick": iteration,
+            "points": [{
+                "agent_name": agent.Agent_name,
+                "financial_points": agent.financial_points,
+                "is_bankrupt": agent.is_bankrupt
+            } for agent in agents_pool
+            ]
+        })
 
         # Update the live state with the current financial points of all agents
         live_state["agent_snapshots"] = [{

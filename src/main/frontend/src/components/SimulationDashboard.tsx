@@ -5,8 +5,30 @@ import LeaderboardPanel from './leaderboard/LeaderboardPanel.tsx'
 import DiaryBubble, { type DiaryBubbleEntry } from './diary/DiaryBubble.tsx'
 import BetBooth, { type PlayerState } from './betting/BetBooth.tsx'
 import RibbonTitle from './ui/RibbonTitle.tsx'
+import MarketCharts from './charts/MarketCharts.tsx'
+import MarketChart from './charts/MarketCharts.tsx'
+
 
 const API_BASE = 'http://127.0.0.1:8000/api'
+
+interface StockTickEntry {
+  tick: number
+  stocks: {
+    name: string
+    type: string
+    trend: string
+    outcome: number
+  }[]
+}
+
+interface AgentPointsEntry {
+  tick: number
+  points: {
+    agent_name: string
+    financial_points: number
+    is_bankrupt: boolean
+  }[]
+}
 
 interface LiveAgentSnapshot {
   Agent_name: string
@@ -21,6 +43,8 @@ interface LiveState {
   market_condition: string
   agent_snapshots: LiveAgentSnapshot[]
   diary_entries: DiaryBubbleEntry[]
+  stock_history : StockTickEntry[]
+  agent_points_history : AgentPointsEntry[]
 }
 
 interface SimulationDashboardProps {
@@ -186,6 +210,14 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
                 />
               )
             })}
+          </div>
+
+          <div className="mt-5 border-t-2 border-dashed border-emerald-100 pt-4">
+            <MarketChart
+              stockHistory={liveState?.stock_history ?? []}
+              agentPointsHistory={liveState?.agent_points_history ?? []}
+              agents={agents}
+            />
           </div>
         </section>
 

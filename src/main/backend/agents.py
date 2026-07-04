@@ -2,14 +2,6 @@ from schemas import AgentProfile, Stocks
 
 agents_pool =[
     AgentProfile(
-        Agent_name="Bryan",
-        economic_level="low",
-        literacy_level="low",
-        fomo_level="low",
-        tendency="risk-averse",
-        personality="analytical"
-    ),
-    AgentProfile(
         Agent_name="Bernard",
         economic_level="middle",
         literacy_level="high",
@@ -18,36 +10,12 @@ agents_pool =[
         personality="contrarian"
     ),
     AgentProfile(
-        Agent_name="Barbara",
-        economic_level="upper-middle",
-        literacy_level="high",
-        fomo_level="high",
-        tendency="risk-averse",
-        personality="analytical"
-    ),
-    AgentProfile(
-        Agent_name="Richard",
-        economic_level="upper-middle",
-        literacy_level="medium",
-        fomo_level="high",
-        tendency="risk-seeking",
-        personality="analytical"
-    ),
-    AgentProfile(
         Agent_name="Eriko",
         economic_level="upper-middle",
         literacy_level="high",
         fomo_level="low",
         tendency="neutral",
         personality="analytical"
-    ),
-    AgentProfile(
-        Agent_name="Lauren",
-        economic_level="middle",
-        literacy_level="low",
-        fomo_level="high",
-        tendency="risk-seeking",
-        personality="impulsive"
     ),
     AgentProfile(
         Agent_name="Micah",
