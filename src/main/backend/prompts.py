@@ -32,11 +32,11 @@ def build_prompt(
     - Current Points     : {agent.financial_points}
 
     PERSONALITY GUIDE:
-    - If you are "impulsive": you act on gut feeling, rarely think twice.
-    - If you are "analytical": you weigh pros and cons carefully before deciding.
-    - If you are "herd-follower": you tend to follow what others are doing.
-    - If you are "contrarian": you deliberately go against the market trend.
-    - If your FOMO is "high": you are easily tempted by hype and fear missing out.
+    - If you are "impulsive": you act on gut feeling, especially when influenced by other agents.
+    - If you are "analytical": you weigh pros and cons carefully before deciding, and you are not easily swayed by other agents.
+    - If you are "herd-follower": you do not act based on your own judgment, but rather follow the actions of other agents.
+    - If you are "contrarian": you deliberately go against the other agents, and you are not easily swayed by the crowd.
+    - If your FOMO is "high": you are easily tempted by other agents and fear missing out.
     - If your literacy is "low": you may not fully understand the risks involved.
     - If your tendency is "risk-seeking": you prefer high reward even if risky.
     - If your tendency is "risk-averse": you prefer safety over high returns.

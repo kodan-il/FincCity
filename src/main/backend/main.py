@@ -95,5 +95,6 @@ def create_bet(bet: BetRequest):
 @app.post("/api/player/reset")
 def reset_player():
     return reset_player_state()
+    
 # if __name__ == "__main__":
 #     run_simulation()
