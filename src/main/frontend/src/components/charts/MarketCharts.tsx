@@ -211,6 +211,11 @@ export default function MarketChart({
     new Set(agents.map((a) => a.Agent_name))
   )
 
+  // Debug logging
+  useEffect(() => {
+    console.log('MarketChart received data:', { stockHistory, agentPointsHistory, agents })
+  }, [stockHistory, agentPointsHistory, agents])
+
   const color = d3.scaleOrdinal(d3.schemeTableau10)
     .domain(agents.map((a) => a.Agent_name))
 

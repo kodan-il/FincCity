@@ -212,13 +212,6 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
             })}
           </div>
 
-          <div className="mt-5 border-t-2 border-dashed border-emerald-100 pt-4">
-            <MarketChart
-              stockHistory={liveState?.stock_history ?? []}
-              agentPointsHistory={liveState?.agent_points_history ?? []}
-              agents={agents}
-            />
-          </div>
         </section>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(320px,1.1fr)]">
