@@ -33,12 +33,20 @@ function StockConditionChart({ data }: { data: StockTickEntry[] }) {
         const allTicks    = data.map((d) => d.tick)
         const allOutcomes = data.flatMap((d) => d.stocks?.map((s) => s.outcome) || [])
         
+        // Early return if no valid data
+        if (allTicks.length === 0 || allOutcomes.length === 0) return
+        
+        const minTick = d3.min(allTicks) ?? 0
+        const maxTick = d3.max(allTicks) ?? 0
+        const minOutcome = d3.min(allOutcomes) ?? 0
+        const maxOutcome = d3.max(allOutcomes) ?? 0
+        
         const xScale = d3.scaleLinear()
-            .domain([d3.min(allTicks)!, d3.max(allTicks)!])
+            .domain([minTick, maxTick])
             .range([0, innerW])
         
         const yScale = d3.scaleLinear()
-            .domain([d3.min(allOutcomes)! - 1, d3.max(allOutcomes)! + 1])
+            .domain([minOutcome - 1, maxOutcome + 1])
             .range([innerH, 0])
         
         const color = d3.scaleOrdinal(d3.schemeTableau10).domain(stockNames)
@@ -136,12 +144,16 @@ function AgentPointsChart({
 
     if (allPoints.length === 0) return
 
+    const minTick = d3.min(allTicks) ?? 0
+    const maxTick = d3.max(allTicks) ?? 0
+    const maxPoints = d3.max(allPoints) ?? 0
+
     const xScale = d3.scaleLinear()
-      .domain([d3.min(allTicks)!, d3.max(allTicks)!])
+      .domain([minTick, maxTick])
       .range([0, innerW])
 
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(allPoints)! + 2])
+      .domain([0, maxPoints + 2])
       .range([innerH, 0])
 
     const color = d3.scaleOrdinal(d3.schemeTableau10).domain(allAgents)
@@ -165,7 +177,7 @@ function AgentPointsChart({
 
     allAgents.forEach((agentName) => {
       const agentData = data.map((d) => {
-        const found = d.points.find((p) => p.agent_name === agentName)
+        const found = d.points?.find((p) => p.agent_name === agentName)
         return found ? { tick: d.tick, financial_points: found.financial_points } : null
       }).filter(Boolean) as { tick: number; financial_points: number }[]
 
