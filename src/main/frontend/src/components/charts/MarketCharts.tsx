@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import * as d3 from 'd3'
+import { useEffect, useState } from 'react'
 
 interface StockTickEntry {
     tick: number
@@ -11,190 +10,132 @@ interface AgentPointsEntry {
     points: { agent_name: string; financial_points: number; is_bankrupt: boolean }[]
 }
 
-function StockConditionChart({ data }: { data: StockTickEntry[] }) {
-    const svgRef = useRef<SVGSVGElement>(null)
+function StockTrendChart({ data }: { data: StockTickEntry[] }) {
+    if (!data || data.length === 0) {
+        return <p className="text-xs text-slate-500 italic py-8">Start simulation to see stock conditions...</p>
+    }
 
-    useEffect(() => {
-        if (!data || data.length === 0) return
-        
-        const svg    = d3.select(svgRef.current)
-        svg.selectAll('*').remove()
-        
-        const width = svgRef.current?.clientWidth || 400
-        const height = 200
-        const margin = {top: 16, right: 90, bottom: 32, left: 36}
-        const innerW = width - margin.left - margin.right
-        const innerH = height - margin.top - margin.bottom
-
-        const stockNames = Array.from(
+    const stockNames = Array.from(
         new Set(data.flatMap((d) => d.stocks?.map((s) => s.name) || []))
-        )
-        
-        const allTicks    = data.map((d) => d.tick)
-        const allOutcomes = data.flatMap((d) => d.stocks?.map((s) => s.outcome) || [])
-        
-        // Early return if no valid data
-        if (allTicks.length === 0 || allOutcomes.length === 0) return
-        
-        const minTick = d3.min(allTicks) ?? 0
-        const maxTick = d3.max(allTicks) ?? 0
-        const minOutcome = d3.min(allOutcomes) ?? 0
-        const maxOutcome = d3.max(allOutcomes) ?? 0
-        
-        const xScale = d3.scaleLinear()
-            .domain([minTick, maxTick])
-            .range([0, innerW])
-        
-        const yScale = d3.scaleLinear()
-            .domain([minOutcome - 1, maxOutcome + 1])
-            .range([innerH, 0])
-        
-        const color = d3.scaleOrdinal(d3.schemeTableau10).domain(stockNames)
-        const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
-
-        // Zero line
-        g.append('line')
-        .attr('x1', 0).attr('x2', innerW)
-        .attr('y1', yScale(0)).attr('y2', yScale(0))
-        .attr('stroke', '#334155')
-        .attr('stroke-dasharray', '4,3')
-
-        // Axes
-        g.append('g')
-        .attr('transform', `translate(0,${innerH})`)
-        .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')))
-        .call((g) => g.select('.domain').attr('stroke', '#475569'))
-        .call((g) => g.selectAll('text').attr('fill', '#94a3b8').attr('font-size', 10))
-
-        g.append('g')
-        .call(d3.axisLeft(yScale).ticks(5))
-        .call((g) => g.select('.domain').attr('stroke', '#475569'))
-        .call((g) => g.selectAll('text').attr('fill', '#94a3b8').attr('font-size', 10))
-
-        // Lines per stock
-        const line = d3.line<{ tick: number; outcome: number }>()
-        .x((d) => xScale(d.tick))
-        .y((d) => yScale(d.outcome))
-        .curve(d3.curveMonotoneX)
-
-        stockNames.forEach((name) => {
-            const values = data
-                .map((d) => {
-                const found = d.stocks?.find((s) => s.name === name)
-                return found ? { tick: d.tick, outcome: found.outcome } : null
-                })
-                .filter(Boolean) as { tick: number; outcome: number }[]
-
-            g.append('path')
-                .datum(values)
-                .attr('fill', 'none')
-                .attr('stroke', color(name) as string)
-                .attr('stroke-width', 2)
-                .attr('d', line)
-
-            if (values.length > 0) {
-                const last = values[values.length - 1]
-                g.append('text')
-                .attr('x', xScale(last.tick) + 6)
-                .attr('y', yScale(last.outcome) + 4)
-                .attr('fill', color(name) as string)
-                .attr('font-size', 9)
-                .text(name.length > 14 ? name.slice(0, 14) + '…' : name)
-            }
-        })
-    }
-,   [data])
-
-    if (data.length === 0) {
-        return <p className="text-xs text-slate-500 italic">Start simulation to see stock conditions...</p>
-    }
-
-    return <svg ref={svgRef} className="w-full" height={200} />
-}
-
-function AgentPointsChart({
-  data,
-  visibleAgents,
-}: {
-  data: AgentPointsEntry[]
-  visibleAgents: Set<string>
-}) {
-  const svgRef = useRef<SVGSVGElement>(null)
-
-  useEffect(() => {
-    if (!svgRef.current || data.length === 0) return
-
-    const svg    = d3.select(svgRef.current)
-    svg.selectAll('*').remove()
-
-    const width  = svgRef.current.clientWidth || 400
-    const height = 200
-    const margin = { top: 16, right: 16, bottom: 32, left: 36 }
-    const innerW = width - margin.left - margin.right
-    const innerH = height - margin.top - margin.bottom
-
-    const allAgents = Array.from(
-      new Set(data.flatMap((d) => d.points?.map((p) => p.agent_name) || []))
-    ).filter((name) => visibleAgents.has(name))
-
-    const allTicks  = data.map((d) => d.tick)
-    const allPoints = data.flatMap((d) =>
-      d.points?.filter((p) => visibleAgents.has(p.agent_name)).map((p) => p.financial_points) || []
     )
 
-    if (allPoints.length === 0) return
+    if (stockNames.length === 0) {
+        return <p className="text-xs text-slate-500 italic py-8">No stock data available...</p>
+    }
 
-    const minTick = d3.min(allTicks) ?? 0
-    const maxTick = d3.max(allTicks) ?? 0
-    const maxPoints = d3.max(allPoints) ?? 0
+    // Get all unique outcomes for scaling
+    const allOutcomes = data.flatMap((d) => d.stocks?.map((s) => s.outcome) || [])
+    const minOutcome = Math.min(...allOutcomes, 0)
+    const maxOutcome = Math.max(...allOutcomes, 1)
+    const range = maxOutcome - minOutcome || 1
 
-    const xScale = d3.scaleLinear()
-      .domain([minTick, maxTick])
-      .range([0, innerW])
+    const colors = ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#6366f1']
 
-    const yScale = d3.scaleLinear()
-      .domain([0, maxPoints + 2])
-      .range([innerH, 0])
+    return (
+        <div className="space-y-4">
+            {stockNames.slice(0, 3).map((stockName, colorIdx) => {
+                const stockData = data
+                    .map((d) => {
+                        const found = d.stocks?.find((s) => s.name === stockName)
+                        return found ? { tick: d.tick, outcome: found.outcome } : null
+                    })
+                    .filter(Boolean) as { tick: number; outcome: number }[]
 
-    const color = d3.scaleOrdinal(d3.schemeTableau10).domain(allAgents)
-    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
+                if (stockData.length === 0) return null
 
-    g.append('g')
-      .attr('transform', `translate(0,${innerH})`)
-      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')))
-      .call((g) => g.select('.domain').attr('stroke', '#475569'))
-      .call((g) => g.selectAll('text').attr('fill', '#94a3b8').attr('font-size', 10))
+                const points = stockData
+                    .map((d, idx) => {
+                        const x = (idx / Math.max(stockData.length - 1, 1)) * 100
+                        const y = 100 - ((d.outcome - minOutcome) / range) * 100
+                        return `${x},${y}`
+                    })
+                    .join(' ')
 
-    g.append('g')
-      .call(d3.axisLeft(yScale).ticks(5))
-      .call((g) => g.select('.domain').attr('stroke', '#475569'))
-      .call((g) => g.selectAll('text').attr('fill', '#94a3b8').attr('font-size', 10))
+                return (
+                    <div key={stockName} className="learning-chart-card">
+                        <div className="chart-grid-lines" />
+                        <svg className="learning-trend-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id={`stockFill-${colorIdx}`} x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stopColor={colors[colorIdx % colors.length]} stopOpacity="0.36" />
+                                    <stop offset="100%" stopColor={colors[colorIdx % colors.length]} stopOpacity="0" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points={`0,100 ${points} 100,100`} fill={`url(#stockFill-${colorIdx})`} />
+                            <polyline points={points} fill="none" stroke={colors[colorIdx % colors.length]} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="trend-label trend-label-final text-xs">{stockName}</div>
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
 
-    const line = d3.line<{ tick: number; financial_points: number }>()
-      .x((d) => xScale(d.tick))
-      .y((d) => yScale(d.financial_points))
-      .curve(d3.curveMonotoneX)
+function AgentPointsTrendChart({ data, visibleAgents }: { data: AgentPointsEntry[]; visibleAgents: Set<string> }) {
+    if (!data || data.length === 0) {
+        return <p className="text-xs text-slate-500 italic py-8">Start simulation to see agent points...</p>
+    }
 
-    allAgents.forEach((agentName) => {
-      const agentData = data.map((d) => {
-        const found = d.points?.find((p) => p.agent_name === agentName)
-        return found ? { tick: d.tick, financial_points: found.financial_points } : null
-      }).filter(Boolean) as { tick: number; financial_points: number }[]
+    const allAgents = Array.from(
+        new Set(data.flatMap((d) => d.points?.map((p) => p.agent_name) || []))
+    ).filter((name) => visibleAgents.has(name))
 
-      g.append('path')
-        .datum(agentData)
-        .attr('fill', 'none')
-        .attr('stroke', color(agentName) as string)
-        .attr('stroke-width', 2)
-        .attr('d', line)
-    })
-  }, [data, visibleAgents])
+    if (allAgents.length === 0) {
+        return <p className="text-xs text-slate-500 italic py-8">No agents selected or data available...</p>
+    }
 
-  if (data.length === 0) {
-    return <p className="text-xs text-slate-500 italic">Start simulation to see agent points...</p>
-  }
+    const allPoints = data.flatMap((d) =>
+        d.points?.filter((p) => visibleAgents.has(p.agent_name)).map((p) => p.financial_points) || []
+    )
 
-  return <svg ref={svgRef} className="w-full" height={200} />
+    if (allPoints.length === 0) return null
+
+    const minPoints = Math.min(...allPoints, 0)
+    const maxPoints = Math.max(...allPoints, 1)
+    const range = maxPoints - minPoints || 1
+
+    const colors = ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#6366f1']
+
+    return (
+        <div className="space-y-4">
+            {allAgents.map((agentName, colorIdx) => {
+                const agentData = data
+                    .map((d) => {
+                        const found = d.points?.find((p) => p.agent_name === agentName)
+                        return found ? { tick: d.tick, points: found.financial_points } : null
+                    })
+                    .filter(Boolean) as { tick: number; points: number }[]
+
+                if (agentData.length === 0) return null
+
+                const points = agentData
+                    .map((d, idx) => {
+                        const x = (idx / Math.max(agentData.length - 1, 1)) * 100
+                        const y = 100 - ((d.points - minPoints) / range) * 100
+                        return `${x},${y}`
+                    })
+                    .join(' ')
+
+                return (
+                    <div key={agentName} className="learning-chart-card">
+                        <div className="chart-grid-lines" />
+                        <svg className="learning-trend-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id={`agentFill-${colorIdx}`} x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stopColor={colors[colorIdx % colors.length]} stopOpacity="0.36" />
+                                    <stop offset="100%" stopColor={colors[colorIdx % colors.length]} stopOpacity="0" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points={`0,100 ${points} 100,100`} fill={`url(#agentFill-${colorIdx})`} />
+                            <polyline points={points} fill="none" stroke={colors[colorIdx % colors.length]} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="trend-label trend-label-final text-xs">{agentName}</div>
+                    </div>
+                )
+            })}
+        </div>
+    )
 }
 
 export default function MarketChart({
@@ -206,18 +147,13 @@ export default function MarketChart({
   agentPointsHistory: AgentPointsEntry[]
   agents: { Agent_name: string }[]
 }) {
-  const [activeTab, setActiveTab]       = useState<'stocks' | 'agents'>('stocks')
+  const [activeTab, setActiveTab] = useState<'stocks' | 'agents'>('stocks')
   const [visibleAgents, setVisibleAgents] = useState<Set<string>>(
     new Set(agents.map((a) => a.Agent_name))
   )
 
-  // Debug logging
-  useEffect(() => {
-    console.log('MarketChart received data:', { stockHistory, agentPointsHistory, agents })
-  }, [stockHistory, agentPointsHistory, agents])
-
-  const color = d3.scaleOrdinal(d3.schemeTableau10)
-    .domain(agents.map((a) => a.Agent_name))
+  const colors = ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#6366f1']
+  const colorMap = new Map(agents.map((a, idx) => [a.Agent_name, colors[idx % colors.length]]))
 
   const toggleAgent = (name: string) => {
     setVisibleAgents((prev) => {
@@ -263,13 +199,13 @@ export default function MarketChart({
 
       {/* Chart */}
       {activeTab === 'stocks' ? (
-        <StockConditionChart data={stockHistory} />
+        <StockTrendChart data={stockHistory} />
       ) : (
         <>
-          <AgentPointsChart data={agentPointsHistory} visibleAgents={visibleAgents} />
+          <AgentPointsTrendChart data={agentPointsHistory} visibleAgents={visibleAgents} />
           {/* Checkbox filter */}
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-            <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-slate-700 pt-4">
+            <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer hover:text-slate-300">
               <input
                 type="checkbox"
                 checked={visibleAgents.size === agents.length}
@@ -281,8 +217,8 @@ export default function MarketChart({
             {agents.map((agent) => (
               <label
                 key={agent.Agent_name}
-                className="flex items-center gap-1.5 text-xs cursor-pointer"
-                style={{ color: color(agent.Agent_name) as string }}
+                className="flex items-center gap-1.5 text-xs cursor-pointer hover:text-slate-100"
+                style={{ color: colorMap.get(agent.Agent_name) }}
               >
                 <input
                   type="checkbox"

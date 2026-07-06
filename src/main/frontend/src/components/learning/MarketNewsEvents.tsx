@@ -128,23 +128,31 @@ function MarketNewsEventsContent({ liveState }: { liveState: LiveState | null })
 
             <div className="current-event-card">
               <div className="event-illustration">{eventIllustration(currentEvent.category)}</div>
+              
               <div className="min-w-0 flex-1">
                 <span className="event-current-chip">⚡ Live market signal</span>
                 <h3>{currentEvent.title}</h3>
                 <p className="event-summary-text">{currentEvent.summary}</p>
-                <div className="event-explanation"><span>Why this matters: </span>{currentEvent.explanation}</div>
-              </div>
+                <div className="event-explanation">
+                  <span>Why this matters: </span>{currentEvent.explanation}
+                </div>
 
-              <div className="asset-impact-card">
-                <h4>Impact on Assets</h4>
-                <div className="mt-3 grid gap-3">
-                  {currentEvent.asset_impacts.map((impact) => (
-                    <div key={impact.asset} className="asset-impact-row">
-                      <span className="asset-icon">{assetIcon(impact.asset)}</span>
-                      <span className="min-w-0 flex-1 truncate font-black text-slate-700">{impact.asset}</span>
-                      <span className={`font-black ${impactClass(impact.direction)}`}>{impactIcon(impact.direction)} {impact.impact > 0 ? '+' : ''}{impact.impact} ({impact.level})</span>
-                    </div>
-                  ))}
+                {/* ← Pindah ke sini, dari sejajar jadi di bawah */}
+                <div className="asset-impact-card mt-4">
+                  <h4>Impact on Assets</h4>
+                  <div className="mt-3 grid gap-3">
+                    {currentEvent.asset_impacts.map((impact) => (
+                      <div key={impact.asset} className="asset-impact-row">
+                        <span className="asset-icon">{assetIcon(impact.asset)}</span>
+                        <span className="min-w-0 flex-1 truncate font-black text-slate-700">
+                          {impact.asset}
+                        </span>
+                        <span className={`font-black ${impactClass(impact.direction)}`}>
+                          {impactIcon(impact.direction)} {impact.impact > 0 ? '+' : ''}{impact.impact} ({impact.level})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
