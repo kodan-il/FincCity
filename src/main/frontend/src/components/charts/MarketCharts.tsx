@@ -27,11 +27,11 @@ function StockConditionChart({ data }: { data: StockTickEntry[] }) {
         const innerH = height - margin.top - margin.bottom
 
         const stockNames = Array.from(
-        new Set(data.flatMap((d) => d.stocks.map((s) => s.name)))
+        new Set(data.flatMap((d) => d.stocks?.map((s) => s.name) || []))
         )
         
         const allTicks    = data.map((d) => d.tick)
-        const allOutcomes = data.flatMap((d) => d.stocks.map((s) => s.outcome))
+        const allOutcomes = data.flatMap((d) => d.stocks?.map((s) => s.outcome) || [])
         
         const xScale = d3.scaleLinear()
             .domain([d3.min(allTicks)!, d3.max(allTicks)!])
@@ -72,7 +72,7 @@ function StockConditionChart({ data }: { data: StockTickEntry[] }) {
         stockNames.forEach((name) => {
             const values = data
                 .map((d) => {
-                const found = d.stocks.find((s) => s.name === name)
+                const found = d.stocks?.find((s) => s.name === name)
                 return found ? { tick: d.tick, outcome: found.outcome } : null
                 })
                 .filter(Boolean) as { tick: number; outcome: number }[]
@@ -126,12 +126,12 @@ function AgentPointsChart({
     const innerH = height - margin.top - margin.bottom
 
     const allAgents = Array.from(
-      new Set(data.flatMap((d) => d.points.map((p) => p.agent_name)))
+      new Set(data.flatMap((d) => d.points?.map((p) => p.agent_name) || []))
     ).filter((name) => visibleAgents.has(name))
 
     const allTicks  = data.map((d) => d.tick)
     const allPoints = data.flatMap((d) =>
-      d.points.filter((p) => visibleAgents.has(p.agent_name)).map((p) => p.financial_points)
+      d.points?.filter((p) => visibleAgents.has(p.agent_name)).map((p) => p.financial_points) || []
     )
 
     if (allPoints.length === 0) return
