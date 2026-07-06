@@ -1,4 +1,4 @@
-export type ViewMode = 'dashboard' | 'management'
+export type ViewMode = 'dashboard' | 'learning' | 'management'
 
 interface GameSidebarProps {
   viewMode: ViewMode
@@ -7,6 +7,7 @@ interface GameSidebarProps {
 
 const navItems = [
   { id: 'dashboard' as const, label: 'Dashboard', icon: '🏘️' },
+  { id: 'learning' as const, label: 'Learning', icon: '🎓' },
   { id: 'management' as const, label: 'Agents', icon: '🧑‍🤝‍🧑' },
 ]
 

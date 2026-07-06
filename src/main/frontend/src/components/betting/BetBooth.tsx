@@ -49,8 +49,11 @@ export default function BetBooth({ agents, player, currentTick = 0, simulationRu
 
   const activeBet = player?.active_bet ?? null
   const coins = player?.coins ?? 100
-  const canBet = !activeBet && coins > 0 && sortedAgents.length > 0
-
+  const canBet =
+    simulationRunning &&
+    !activeBet &&
+    coins > 0 &&
+    sortedAgents.length > 0
   const selectedLook = getLook(selectedAgent || sortedAgents[0]?.Agent_name || 'Mayor')
 
   const handlePlace = async () => {
@@ -145,11 +148,11 @@ export default function BetBooth({ agents, player, currentTick = 0, simulationRu
         </div>
 
         <div className="mayor-tip-card">
-          <div className="mayor-tip-avatar">🐶</div>
+          <div className="mayor-tip-avatar">{selectedLook.emoji}</div>
           <div>
             <p className="mayor-tip-label">Mayor Pup says</p>
             <p className="mayor-tip-text">
-              Pick one citizen and predict who earns the most points this tick.
+              Study {selectedAgent || 'a citizen'} and predict who earns the most points this tick.
             </p>
           </div>
         </div>

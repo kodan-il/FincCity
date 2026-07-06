@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import SimulationDashboard from './components/SimulationDashboard.tsx'
 import AgentManagement from './components/AgentManagement.tsx'
+import FinancialLearningHub from './components/learning/FinancialLearningHub.tsx'
 import CityBackground from './components/layout/CityBackground.tsx'
 import GameHeader from './components/layout/GameHeader.tsx'
 import GameSidebar, { type ViewMode } from './components/layout/GameSidebar.tsx'
@@ -29,6 +30,8 @@ export default function App() {
           <div className="game-stage min-h-0 flex-1 overflow-hidden">
             {viewMode === 'dashboard' ? (
               <SimulationDashboard onLiveMetaChange={(tick, mood) => { setCurrentTick(tick); setMarketMood(mood || 'curious') }} />
+            ) : viewMode === 'learning' ? (
+              <FinancialLearningHub />
             ) : (
               <AgentManagement />
             )}

@@ -30,6 +30,8 @@ live_state = {
     "current_tick": 0,
     "current_month": 0,
     "market_condition": "",
+    "market_event": None,
+    "market_events": [],
     "agent_snapshots": [],
     "diary_entries": [],
     "stock_history": [],
@@ -54,6 +56,61 @@ def get_market_condition() -> MarketCondition:
     )
 
 #-- setup which stocks for both high volatile and stable stocks that is on the market trends
+def make_asset_impact(feature: FeaturedStock, market: MarketCondition) -> dict:
+    base_impact = 2 if feature.todays_trend == "bull" else -2
+
+    if market.condition == "bull_market" and feature.stock.Stock_Type == "high_volatile":
+        base_impact += 1
+    elif market.condition == "bear_market" and feature.stock.Stock_Type == "high_volatile":
+        base_impact -= 1
+    elif market.condition == "normal" and feature.stock.Stock_Type == "stable":
+        base_impact = 1 if feature.todays_trend == "bull" else 0
+
+    level = "High" if abs(base_impact) >= 3 else ("Medium" if abs(base_impact) == 2 else "Low")
+    direction = "up" if base_impact > 0 else ("down" if base_impact < 0 else "neutral")
+
+    return {
+        "asset": feature.stock.Stock_Name,
+        "impact": base_impact,
+        "level": level,
+        "direction": direction
+    }
+
+
+def build_market_event(iteration: int, market: MarketCondition, featured_stocks: list[FeaturedStock]) -> dict:
+    top_stock = featured_stocks[0].stock.Stock_Name if featured_stocks else "the market"
+
+    if market.condition == "bull_market":
+        title = "Optimism Lifts the Market"
+        category = "Bullish News"
+        market_effect = "Bullish"
+        summary = f"Investor confidence rises and growth-focused assets such as {top_stock} attract attention."
+        explanation = "A bullish event usually means investors are more willing to take risk. High-growth and high-volatility assets can benefit, but losses are still possible."
+    elif market.condition == "bear_market":
+        title = "Caution Spreads Across FinnCity"
+        category = "Bearish News"
+        market_effect = "Bearish"
+        summary = f"Investors become defensive, and risky assets face pressure while stable companies look safer."
+        explanation = "A bearish event means investors are more pessimistic. Risky assets may fall harder, while stable assets can become more attractive to cautious agents."
+    else:
+        title = "Markets Stay Balanced"
+        category = "Market Update"
+        market_effect = "Neutral"
+        summary = "No major shock is moving the market, so agent decisions depend more on personality and asset-specific trends."
+        explanation = "A normal market does not strongly favor risk or safety. Financial literacy matters because agents must compare risk, return, and asset quality."
+
+    return {
+        "id": f"event-{iteration}",
+        "tick": iteration,
+        "title": title,
+        "category": category,
+        "summary": summary,
+        "market_effect": market_effect,
+        "explanation": explanation,
+        "asset_impacts": [make_asset_impact(feature, market) for feature in featured_stocks]
+    }
+
+
 def get_featured_stock() -> list[FeaturedStock]:
     volatile_pool = [stocks for stocks in stocks_pool if stocks.Stock_Type == "high_volatile"]
     stable_pool = [stocks for stocks in stocks_pool if stocks.Stock_Type == "stable"]
@@ -179,6 +236,12 @@ def run_simulation():
 
         #-- Setting up stock trend
         featured_stock = get_featured_stock()
+        market_event = build_market_event(iteration, market_condition, featured_stock)
+        live_state["market_event"] = market_event
+        live_state["market_events"].insert(0, market_event)
+        live_state["market_events"] = live_state["market_events"][:10]
+
+        print(f"\n Market event: {market_event['title']} | {market_event['market_effect']}")
         print(f"\n Today stock trends: ")
         for feature in featured_stock:
             print(f"   {feature.stock.Stock_Name} "
