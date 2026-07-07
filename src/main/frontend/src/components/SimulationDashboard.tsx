@@ -95,6 +95,13 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
       try {
         const res = await fetch(`${API_BASE}/simulation/live-state`)
         const data: LiveState = await res.json()
+        console.debug('[frontend] live-state received', {
+          currentTick: data.current_tick,
+          stockHistoryLength: data.stock_history?.length ?? 0,
+          agentPointsLength: data.agent_points_history?.length ?? 0,
+          sampleStock: data.stock_history?.[data.stock_history.length - 1],
+          samplePoints: data.agent_points_history?.[data.agent_points_history.length - 1],
+        })
         setLiveState(data)
         onLiveMetaChange?.(data.current_tick, data.market_condition)
       } catch {
@@ -212,6 +219,13 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
             })}
           </div>
 
+          <div className="market-stock-condition">
+            <MarketChart
+              stockHistory={liveState?.stock_history ?? []}
+              agentPointsHistory={liveState?.agent_points_history ?? []}
+              agents={agents}
+            />
+          </div>
         </section>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(320px,1.1fr)]">

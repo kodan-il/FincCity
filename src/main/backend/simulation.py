@@ -35,7 +35,7 @@ live_state = {
     "agent_snapshots": [],
     "diary_entries": [],
     "stock_history": [],
-    "agent_point_history": []
+    "agent_points_history": []
 }
 
 # Vocal threshold for determining if an agent's outcome is significant enough to be logged in the diary entries
@@ -248,9 +248,9 @@ def run_simulation():
                   f"| {feature.stock.Stock_Type} "
                   f"| trend: {feature.todays_trend}")
 
-        tick_stock_data ={
-            "tick" : iteration,
-            "stock" : []
+        tick_stock_data = {
+            "tick": iteration,
+            "stocks": []
         }
         
         stock_outcomes_this_tick = {}
@@ -318,18 +318,20 @@ def run_simulation():
                 bankruptcy_summary(agent)
 
 
-        tick_stock_data["stock"] = list(stock_outcomes_this_tick.values())
+        tick_stock_data["stocks"] = list(stock_outcomes_this_tick.values())
         live_state["stock_history"].append(tick_stock_data)
 
-        live_state["agent_point_history"].append({ 
+        live_state["agent_points_history"].append({
             "tick": iteration,
             "points": [{
                 "agent_name": agent.Agent_name,
                 "financial_points": agent.financial_points,
                 "is_bankrupt": agent.is_bankrupt
-            } for agent in agents_pool
-            ]
+            } for agent in agents_pool]
         })
+        live_state["agent_point_history"] = live_state["agent_points_history"]
+
+        print(f"[backend] tick={iteration} live-state update -> stocks={len(live_state['stock_history'])} agent-points={len(live_state['agent_points_history'])} sample-stock={tick_stock_data['stocks'][:2]}")
 
         # Update the live state with the current financial points of all agents
         live_state["agent_snapshots"] = [{
