@@ -205,39 +205,26 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
               {simRunning ? 'Simulation running' : starting ? 'Starting city...' : 'Start Simulation'}
             </button>
           </div>
-
-          <div className="citizen-grid">
-            {liveAgents.map((liveAgent) => {
-              const baseAgent = agentBaseByName.get(liveAgent.Agent_name)
-              return (
-                <CitizenCard
-                  key={liveAgent.Agent_name}
-                  agent={liveAgent}
-                  fallbackAllocation={baseAgent?.current_asset_allocation}
-                />
-              )
-            })}
-          </div>
-
-          <div className="market-stock-condition">
+          
+          <div className="mt-5 border-t-2 border-dashed border-emerald-100 pt-4 grid grid-cols-[3fr_1fr] gap-4">
             <MarketChart
               stockHistory={liveState?.stock_history ?? []}
               agentPointsHistory={liveState?.agent_points_history ?? []}
               agents={agents}
             />
+            <LeaderboardPanel agents={liveLeaderboard} tick={liveState?.current_tick} />
           </div>
-        </section>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(320px,1.1fr)]">
-          <LeaderboardPanel agents={liveLeaderboard} tick={liveState?.current_tick} />
-          <BetBooth
-            agents={liveAgents}
-            player={player}
-            currentTick={liveState?.current_tick ?? 0}
-            simulationRunning={simRunning}
-            onPlaceBet={handlePlaceBet}
-          />
-        </div>
+          <div className="betbooth">
+            <BetBooth
+              agents={liveAgents}
+              player={player}
+              currentTick={liveState?.current_tick ?? 0}
+              simulationRunning={simRunning}
+              onPlaceBet={handlePlaceBet}
+            />
+          </div>        
+        </section>
       </div>
 
       <aside className="cartoon-panel diary-panel min-h-[420px] p-5 xl:min-h-0 xl:overflow-hidden">
