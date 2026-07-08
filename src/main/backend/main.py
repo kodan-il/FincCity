@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from simulation import run_simulation
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from schemas import AgentProfile
+from schemas import AgentProfile, MarketCondition, MarketIntervention
 from agents import agents_pool
 from simulation import live_state
 from player import get_player_state, place_bet, reset_player_state
@@ -95,6 +95,23 @@ def create_bet(bet: BetRequest):
 @app.post("/api/player/reset")
 def reset_player():
     return reset_player_state()
-    
+
+@app.post("/api/market/intervene")
+def market_intervene(intervention: MarketIntervention):
+    if not simulation_status["running"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Simulation is not running. Start simulation first."
+        )
+    live_state["active_intervention"] = {
+        "intervention_type": intervention.intervention_type,
+        "ticks_remaining":   intervention.ticks_remaining,
+    }
+    return {
+        "status": "intervention_set",
+        "intervention_type": intervention.intervention_type,
+        "ticks_remaining": intervention.ticks_remaining,
+    }
+
 # if __name__ == "__main__":
 #     run_simulation()

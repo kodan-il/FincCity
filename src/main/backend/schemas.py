@@ -9,6 +9,10 @@ class MarketCondition(BaseModel):
     condition: MARKET_CONDITIONS
     description: str #for context
 
+# -- Class intervention
+class MarketIntervention(BaseModel):
+    intervention_type: Literal["hype", "regulatory_warning", "panic", "bull_signal"]
+    ticks_remaining: int = 2
 # -- Stocks Object
 class Stocks(BaseModel):
     Stock_Name: str

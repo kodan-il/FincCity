@@ -35,11 +35,20 @@ live_state = {
     "agent_snapshots": [],
     "diary_entries": [],
     "stock_history": [],
-    "agent_points_history": []
+    "agent_points_history": [],
+    "active_intervention": None
 }
 
 # Vocal threshold for determining if an agent's outcome is significant enough to be logged in the diary entries
 VOCAL_THRESHOLD = 3
+
+# Details of the market interventions and their effects on the market condition
+INTERVENTION_MARKET_MAP = {
+    "hype":               "bull_market",
+    "bull_signal":        "bull_market",
+    "panic":              "bear_market",
+    "regulatory_warning": "normal",
+}
 
 #-- Setting up the market condition on this iteration
 def get_market_condition() -> MarketCondition:
@@ -75,6 +84,7 @@ def make_asset_impact(feature: FeaturedStock, market: MarketCondition) -> dict:
         "level": level,
         "direction": direction
     }
+
 
 
 def build_market_event(iteration: int, market: MarketCondition, featured_stocks: list[FeaturedStock]) -> dict:
@@ -229,10 +239,37 @@ def run_simulation():
         print(f"\n{'='*40}")
         print(f"Iteration {iteration} | Month{((iteration-1)//2)+1}")
 
+        current_intervention = live_state.get("active_intervention")
+        intervention_type = current_intervention.get("intervention_type") if current_intervention else None
+
+        if intervention_type and intervention_type in INTERVENTION_MARKET_MAP:
+            forced_condition = INTERVENTION_MARKET_MAP[intervention_type]
+            descriptions = {
+                "bull_market": "Market is going up, investor are optimistic.",
+                "bear_market": "Market is going down, investors are pessimistic.",
+                "normal":      "No significant movement around the market."
+            }
+            market_condition = MarketCondition(
+                condition=forced_condition,
+                description=descriptions[forced_condition]
+            )
+            print(f"⚡ Intervention active: {intervention_type} → market forced to {forced_condition}")
+        else:
+            market_condition = get_market_condition()
+
+        print(f"Market: {market_condition.condition} - {market_condition.description}")
+
         # -- Setting up market condition on the start
         market_condition = get_market_condition()
         print(f"Market: {market_condition.condition} - {market_condition.description}")
         tick_start_points = {agent.Agent_name: agent.financial_points for agent in agents_pool}
+
+        if current_intervention:
+            current_intervention["ticks_remaining"] -= 1
+            print(f"⚡ Intervention ticks remaining: {current_intervention['ticks_remaining']}")
+            if current_intervention["ticks_remaining"] <= 0:
+                live_state["active_intervention"] = None
+                print("⚡ Intervention expired.")
 
         #-- Setting up stock trend
         featured_stock = get_featured_stock()
@@ -262,7 +299,11 @@ def run_simulation():
                 continue
 
             # Step 1 — Build prompt
-            prompt = build_prompt(agent, market_condition, featured_stock)
+            prompt = build_prompt(
+                agent, 
+                market_condition, 
+                featured_stock, 
+                active_intervention=live_state.get("active_intervention"))
 
             # Step 2 — send to LLM
             response = client.chat.completions.create(

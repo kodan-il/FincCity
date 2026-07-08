@@ -137,7 +137,6 @@ function MarketNewsEventsContent({ liveState }: { liveState: LiveState | null })
                   <span>Why this matters: </span>{currentEvent.explanation}
                 </div>
 
-                {/* ← Pindah ke sini, dari sejajar jadi di bawah */}
                 <div className="asset-impact-card mt-4">
                   <h4>Impact on Assets</h4>
                   <div className="mt-3 grid gap-3">
