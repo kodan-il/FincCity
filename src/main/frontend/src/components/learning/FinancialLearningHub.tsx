@@ -4,14 +4,44 @@ import MarketNewsEvents, { type MarketEvent, type DiaryEntry } from './MarketNew
 
 const API_BASE = 'http://127.0.0.1:8000/api'
 
+type MarketMetric = {
+  label: string
+  value: string | number
+  change: string
+  icon: string
+  tone: string
+  bars?: number[]
+}
+type AgentSnapshot = {
+  Agent_name: string
+  financial_points: number
+  current_asset_allocation: string
+  is_bankrupt: boolean
+}
+
+type AgentPointHistoryItem = {
+  tick: number
+  points: {
+    agent_name: string
+    financial_points: number
+    is_bankrupt: boolean
+  }[]
+}
+
 type LiveState = {
   current_tick: number
   current_month: number
   market_condition: string
+  market_metrics?: MarketMetric[]
   market_event?: MarketEvent | null
   market_events?: MarketEvent[]
   diary_entries?: DiaryEntry[]
+  agent_snapshots?: AgentSnapshot[]
+  agent_points_history?: AgentPointHistoryItem[]
+
 }
+
+
 
 const marketMetrics = [
   { label: 'Market Index', value: '1,245.6', change: '+2.45%', icon: '📈', tone: 'green', bars: [30, 42, 38, 55, 49, 70, 76] },
@@ -91,22 +121,63 @@ function MiniSparkline({ values }: { values: number[] }) {
   )
 }
 
-function TrendChart() {
-  const points = trendPoints.map((value, idx) => `${(idx / (trendPoints.length - 1)) * 100},${100 - value}`).join(' ')
+function TrendChart({
+  values,
+  label,
+  condition,
+}: {
+  values: number[]
+  label: string | number
+  condition: string
+}) {
+  const safeValues = values.length >= 2 ? values : [34, 42, 39, 55, 51, 62, 58, 71]
+
+  const points = safeValues
+    .map((value, idx) => `${(idx / (safeValues.length - 1)) * 100},${100 - value}`)
+    .join(' ')
+
+  const lineColor =
+    condition === 'bear_market'
+      ? '#ef4444'
+      : condition === 'bull_market'
+        ? '#10b981'
+        : '#3b82f6'
+
   return (
     <div className="learning-chart-card">
       <div className="chart-grid-lines" />
+
       <svg className="learning-trend-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
           <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#34d399" stopOpacity="0.36" />
-            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+            <stop offset="0%" stopColor={lineColor} stopOpacity="0.32" />
+            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
           </linearGradient>
         </defs>
+
         <polygon points={`0,100 ${points} 100,100`} fill="url(#trendFill)" />
-        <polyline points={points} fill="none" stroke="#10b981" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+
+        <polyline
+          points={points}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="3.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {safeValues.map((value, idx) => (
+          <circle
+            key={idx}
+            cx={(idx / (safeValues.length - 1)) * 100}
+            cy={100 - value}
+            r="1.8"
+            fill={lineColor}
+          />
+        ))}
       </svg>
-      <div className="trend-label trend-label-final">1,245.6</div>
+
+      <div className="trend-label trend-label-final">{label}</div>
     </div>
   )
 }
@@ -185,6 +256,26 @@ function SideRail({ setTab }: { setTab: (tab: HubTab) => void }) {
   )
 }
 
+function getPortfolioParts(assetName: string) {
+  if (!assetName) return [25, 25, 25, 25]
+
+  const asset = assetName.toLowerCase()
+
+  if (asset.includes('technology') || asset.includes('tech') || asset.includes('game')) {
+    return [70, 10, 10, 10]
+  }
+
+  if (asset.includes('bank')) {
+    return [10, 70, 10, 10]
+  }
+
+  if (asset.includes('petroleum') || asset.includes('oil') || asset.includes('energy')) {
+    return [10, 10, 70, 10]
+  }
+
+  return [40, 20, 20, 20]
+}
+
 export default function FinancialLearningHub() {
   const [activeTab, setActiveTab] = useState<HubTab>('overview')
   const [liveState, setLiveState] = useState<LiveState | null>(null)
@@ -206,7 +297,112 @@ export default function FinancialLearningHub() {
     return () => clearInterval(interval)
   }, [])
 
-  const marketCondition = liveState?.market_condition?.replaceAll('_', ' ') || 'bullish'
+  const rawMarketCondition = liveState?.market_condition || 'normal'
+
+  const marketConditionView =
+    rawMarketCondition === 'bull_market'
+      ? {
+        label: 'bull market',
+        icon: '🐂',
+        trendIcon: '📈',
+        copy: 'Investors are optimistic and most assets are showing positive momentum. In a bullish market, growth assets may perform better, but high returns still come with high risk.',
+        tip: '💡 Growth stocks tend to rise in bullish markets, while defensive assets usually offer stability.',
+      }
+      : rawMarketCondition === 'bear_market'
+        ? {
+          label: 'bear market',
+          icon: '🐻',
+          trendIcon: '📉',
+          copy: 'Investors are cautious and many assets are under pressure. In a bearish market, defensive assets may become safer choices.',
+          tip: '💡 Defensive assets usually become more attractive in bearish markets, while risky assets may fall harder.',
+        }
+        : {
+          label: rawMarketCondition.replaceAll('_', ' '),
+          icon: '⚖️',
+          trendIcon: '➖',
+          copy: 'The market is stable with no major upward or downward movement. Balanced strategies may work better here.',
+          tip: '💡 In stable markets, diversified portfolios usually perform better than extreme risky bets.',
+        }
+
+  const liveMarketMetrics = liveState?.market_metrics?.length
+    ? liveState.market_metrics
+    : marketMetrics
+
+  const livePortfolios = liveState?.agent_snapshots?.length
+    ? liveState.agent_snapshots.map((agent) => {
+      const coins = agent.financial_points
+      const profit = coins - 10
+
+      return {
+        name: agent.Agent_name,
+        avatar: agent.is_bankrupt ? '💀' : '👤',
+        diversity: agent.current_asset_allocation ? 'Active' : 'Unknown',
+        coins,
+        parts: getPortfolioParts(agent.current_asset_allocation),
+        profit: profit >= 0 ? `+${profit}` : `${profit}`,
+        style: agent.current_asset_allocation || 'No asset selected',
+        is_bankrupt: agent.is_bankrupt,
+      }
+    })
+    : portfolios
+
+  const liveAgentPerformance = liveState?.agent_snapshots?.length
+    ? liveState.agent_snapshots
+      .map((agent) => {
+        const coins = agent.financial_points
+        const gain = coins - 10
+
+        return {
+          name: agent.Agent_name,
+          coins,
+          gain,
+          risk: agent.is_bankrupt ? 'Bankrupt' : gain < 0 ? 'High' : gain < 8 ? 'Medium' : 'Low',
+        }
+      })
+      .sort((a, b) => b.coins - a.coins)
+    : agentPerformance
+
+  const liveTrendPoints =
+    liveState?.agent_points_history?.length
+      ? liveState.agent_points_history.map((entry) => {
+        const activeAgents = entry.points.filter((p) => !p.is_bankrupt)
+        const avg =
+          activeAgents.length > 0
+            ? activeAgents.reduce((sum, p) => sum + p.financial_points, 0) / activeAgents.length
+            : 0
+
+        return Math.min(90, Math.max(10, avg * 4))
+      })
+      : trendPoints
+
+  const latestMarketIndex =
+    liveState?.market_metrics?.find((metric) => metric.label === 'Market Index')?.value || '1,245.6'
+
+  const losingAgents = liveAgentPerformance.filter((agent) => agent.gain < 0).length
+  const bankruptAgents = liveAgentPerformance.filter((agent) => agent.risk === 'Bankrupt').length
+
+  const marketRiskBase =
+    rawMarketCondition === 'bear_market' ? 55 :
+      rawMarketCondition === 'bull_market' ? 35 :
+        25
+
+  const liveRiskScore = Math.min(
+    95,
+    marketRiskBase + losingAgents * 6 + bankruptAgents * 12
+  )
+
+  const liveRiskLabel =
+    liveRiskScore >= 75 ? 'High Risk' :
+      liveRiskScore >= 50 ? 'Medium Risk' :
+        'Balanced Risk'
+
+  const liveRiskText =
+    liveRiskScore >= 75
+      ? 'Several agents are under pressure. Safer assets and diversification matter most right now.'
+      : liveRiskScore >= 50
+        ? 'The market has opportunities, but some agents are exposed to losses. Avoid putting everything into one risky asset.'
+        : 'The market looks relatively calm. Balanced portfolios are currently safer than extreme bets.'
+
 
   return (
     <div className="learning-page h-full min-h-0 overflow-y-auto p-4 xl:p-6">
@@ -266,19 +462,19 @@ export default function FinancialLearningHub() {
                 <div className="learning-overview-grid">
                   <div className="market-condition-card">
                     <div className="market-condition-top">
-                      <span className="text-6xl">🐂</span>
+                      <span className="text-6xl">{marketConditionView.icon}</span>
                       <div>
                         <p>Current Market Condition</p>
-                        <h3>{marketCondition}</h3>
+                        <h3>{marketConditionView.label}</h3>
                       </div>
-                      <span className="text-4xl">📈</span>
+                      <span className="text-4xl">{marketConditionView.trendIcon}</span>
                     </div>
-                    <p className="market-condition-copy">Investors are optimistic and most assets are showing positive momentum. In a bullish market, growth assets may perform better, but high returns still come with high risk.</p>
-                    <div className="market-condition-tip">💡 Growth stocks tend to rise in bullish markets, while defensive assets usually offer stability.</div>
+                    <p className="market-condition-copy">{marketConditionView.copy}</p>
+                    <div className="market-condition-tip">{marketConditionView.tip}</div>
                   </div>
 
                   <div className="metric-grid">
-                    {marketMetrics.map((metric) => (
+                    {liveMarketMetrics.map((metric) => (
                       <div key={metric.label} className={`metric-card metric-${metric.tone}`}>
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-2xl">{metric.icon}</span>
@@ -286,7 +482,7 @@ export default function FinancialLearningHub() {
                         </div>
                         <p>{metric.label}</p>
                         <h4>{metric.value}</h4>
-                        <MiniSparkline values={metric.bars} />
+                        <MiniSparkline values={metric.bars || [35, 45, 55, 50, 60, 65, 70]} />
                       </div>
                     ))}
                   </div>
@@ -314,7 +510,7 @@ export default function FinancialLearningHub() {
 
               {activeTab === 'portfolios' && (
                 <div className="portfolio-list">
-                  {portfolios.map((portfolio) => (
+                  {livePortfolios.map((portfolio) => (
                     <article key={portfolio.name} className="portfolio-row-card">
                       <div className="portfolio-name"><span>{portfolio.avatar}</span><strong>{portfolio.name}</strong><small>{portfolio.style} • {portfolio.coins} coins</small></div>
                       <PortfolioBar parts={portfolio.parts} />
@@ -334,22 +530,43 @@ export default function FinancialLearningHub() {
               {activeTab === 'analytics' && (
                 <div className="analytics-grid">
                   <div className="analytics-card wide">
-                    <div className="analytics-card-heading"><h3>Market Index Trend</h3><span>Last 12 ticks</span></div>
-                    <TrendChart />
+                    <div className="analytics-card-heading"><h3>Market Index Trend</h3><span>Last {liveTrendPoints.length} ticks</span></div>
+                    <TrendChart values={liveTrendPoints} label={latestMarketIndex} condition={rawMarketCondition} />
                   </div>
-                  <div className="analytics-card">
-                    <div className="analytics-card-heading"><h3>Risk Meter</h3><span>Live lesson</span></div>
-                    <div className="risk-gauge"><span /></div>
-                    <h4>Medium Risk</h4>
-                    <p>Stay balanced and diversify wisely. A medium-risk market can still punish concentrated portfolios.</p>
+                  <div className="analytics-card risk-meter-card">
+                    <div className="analytics-card-heading">
+                      <h3>Risk Meter</h3>
+                      <span>Live risk score: {liveRiskScore}/100</span>
+                    </div>
+
+                    <div className="risk-score-pill">
+                      {liveRiskLabel}
+                    </div>
+
+                    <div className="risk-gauge">
+                      <span style={{ width: `${liveRiskScore}%` }} />
+                    </div>
+
+                    <div className="risk-scale-row">
+                      <span>Low</span>
+                      <span>Medium</span>
+                      <span>High</span>
+                    </div>
+
+                    <p className="risk-meter-text">{liveRiskText}</p>
                   </div>
                   <div className="analytics-card wide">
                     <div className="analytics-card-heading"><h3>Agent Profit / Loss</h3><span>Current simulation snapshot</span></div>
                     <div className="agent-performance-list">
-                      {agentPerformance.map((agent) => (
+                      {liveAgentPerformance.map((agent) => (
                         <div key={agent.name} className="agent-performance-row">
-                          <div><strong>{agent.name}</strong><span>{agent.risk} risk</span></div>
-                          <div className="performance-bar"><span style={{ width: `${Math.max(8, (agent.coins / 21) * 100)}%` }} /></div>
+                          <div>
+                            <strong>{agent.name}</strong>
+                            <span>{agent.coins} coins • {agent.risk} risk</span>
+                          </div>
+                          <div className="performance-bar">
+                            <span style={{ width: `${Math.max(8, Math.min(100, (agent.coins / 60) * 100))}%` }} />
+                          </div>
                           <b className={agent.gain >= 0 ? 'profit-positive' : 'profit-negative'}>{agent.gain >= 0 ? '+' : ''}{agent.gain}</b>
                         </div>
                       ))}

@@ -43,8 +43,8 @@ interface LiveState {
   market_condition: string
   agent_snapshots: LiveAgentSnapshot[]
   diary_entries: DiaryBubbleEntry[]
-  stock_history : StockTickEntry[]
-  agent_points_history : AgentPointsEntry[]
+  stock_history: StockTickEntry[]
+  agent_points_history: AgentPointsEntry[]
 }
 
 interface SimulationDashboardProps {
@@ -205,13 +205,16 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
               {simRunning ? 'Simulation running' : starting ? 'Starting city...' : 'Start Simulation'}
             </button>
           </div>
-          
-          <div className="mt-5 border-t-2 border-dashed border-emerald-100 pt-4 grid grid-cols-[3fr_1fr] gap-4">
-            <MarketChart
-              stockHistory={liveState?.stock_history ?? []}
-              agentPointsHistory={liveState?.agent_points_history ?? []}
-              agents={agents}
-            />
+
+          <div className="dashboard-chart-leaderboard">
+            <div className="dashboard-chart-wrap">
+              <MarketChart
+                stockHistory={liveState?.stock_history ?? []}
+                agentPointsHistory={liveState?.agent_points_history ?? []}
+                agents={agents}
+              />
+            </div>
+
             <LeaderboardPanel agents={liveLeaderboard} tick={liveState?.current_tick} />
           </div>
 
@@ -223,7 +226,7 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
               simulationRunning={simRunning}
               onPlaceBet={handlePlaceBet}
             />
-          </div>        
+          </div>
         </section>
       </div>
 

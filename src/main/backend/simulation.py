@@ -31,6 +31,7 @@ live_state = {
     "current_month": 0,
     "market_condition": "",
     "market_event": None,
+    "market_metrics": [],
     "market_events": [],
     "agent_snapshots": [],
     "diary_entries": [],
@@ -63,6 +64,61 @@ def get_market_condition() -> MarketCondition:
         condition=market_condition,
         description=descriptions[market_condition]
     )
+
+def build_market_metrics(iteration, market_condition, agents_pool):
+    avg_points = sum(a.financial_points for a in agents_pool) / len(agents_pool)
+    bankrupt_count = sum(1 for a in agents_pool if a.is_bankrupt)
+
+    if market_condition.condition == "bull_market":
+        confidence = "High"
+        index_change = 2.4
+        volatility = 14.8
+    elif market_condition.condition == "bear_market":
+        confidence = "Low"
+        index_change = -2.1
+        volatility = 26.5
+    else:
+        confidence = "Medium"
+        index_change = 0.3
+        volatility = 18.0
+
+    return [
+        {
+            "label": "Market Index",
+            "value": round(1000 + avg_points * 12 + iteration * index_change, 1),
+            "change": f"{index_change:+.2f}%",
+            "icon": "📈",
+            "tone": "green" if index_change >= 0 else "red",
+        },
+        {
+            "label": "Inflation",
+            "value": f"{round(2.0 + bankrupt_count * 0.2, 1)}%",
+            "change": f"{bankrupt_count * 0.10:+.2f}%",
+            "icon": "💸",
+            "tone": "amber",
+        },
+        {
+            "label": "Interest Rate",
+            "value": "4.0%",
+            "change": "0.00%",
+            "icon": "🏦",
+            "tone": "blue",
+        },
+        {
+            "label": "Volatility",
+            "value": f"{volatility} VIX",
+            "change": "+1.80%" if volatility > 18 else "-0.60%",
+            "icon": "⚡",
+            "tone": "red",
+        },
+        {
+            "label": "Investor Confidence",
+            "value": confidence,
+            "change": "+1.8%" if confidence == "High" else "-1.8%" if confidence == "Low" else "0.0%",
+            "icon": "😊" if confidence == "High" else "😟" if confidence == "Low" else "😐",
+            "tone": "green" if confidence == "High" else "red" if confidence == "Low" else "blue",
+        },
+    ]
 
 #-- setup which stocks for both high volatile and stable stocks that is on the market trends
 def make_asset_impact(feature: FeaturedStock, market: MarketCondition) -> dict:
@@ -334,6 +390,11 @@ def run_simulation():
             live_state["current_tick"] = iteration
             live_state["current_month"] = ((iteration -1) //2) + 1
             live_state["market_condition"] = market_condition.condition
+            live_state["market_metrics"] = build_market_metrics(
+            iteration,
+            market_condition,
+            agents_pool
+        )
 
             # Determine if the agent's outcome is significant enough to be logged in the diary entries
             is_vocal = agent.is_bankrupt or abs(outcome) >= VOCAL_THRESHOLD

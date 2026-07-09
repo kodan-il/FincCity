@@ -34,15 +34,23 @@ function StockConditionsChart({ data }: { data: StockTickEntry[] }) {
     svg.selectAll('*').remove()
 
     const width = svgRef.current.clientWidth || 400
-    const height = 200
+    const height = 300
     const margin = { top: 16, right: 90, bottom: 32, left: 36 }
     const innerW = width - margin.left - margin.right
     const innerH = height - margin.top - margin.bottom
 
     const safeData = normalizedData.filter((d) => d && typeof d === 'object')
     const stockNames = Array.from(
-      new Set(safeData.flatMap((d) => (Array.isArray(d.stocks) ? d.stocks : []).map((s) => s?.name).filter(Boolean)))
-    )
+      new Set(
+        safeData
+          .slice(-6)
+          .flatMap((d) =>
+            (Array.isArray(d.stocks) ? d.stocks : [])
+              .map((s) => s?.name)
+              .filter(Boolean)
+          )
+      )
+    ).slice(0, 6)
 
     const allTicks = safeData.map((d) => Number(d.tick)).filter((value) => Number.isFinite(value))
     const allOutcomes = safeData.flatMap((d) => (Array.isArray(d.stocks) ? d.stocks : []).map((s) => Number(s?.outcome)).filter((value) => Number.isFinite(value)))
@@ -101,7 +109,7 @@ function StockConditionsChart({ data }: { data: StockTickEntry[] }) {
         .datum(values)
         .attr('fill', 'none')
         .attr('stroke', color(name) as string)
-        .attr('stroke-width', 2)
+        .attr('stroke-width', 3)
         .attr('d', line)
 
       if (values.length > 0) {
@@ -120,7 +128,7 @@ function StockConditionsChart({ data }: { data: StockTickEntry[] }) {
     return <p className="text-xs text-slate-500 italic">Start simulation to see stock conditions...</p>
   }
 
-  return <svg ref={svgRef} className="w-full" height={200} />
+  return <svg ref={svgRef} className="w-full market-chart-svg" height={380} />
 }
 
 // --- Tab 2: Agent Points ---
@@ -140,7 +148,7 @@ function AgentPointsChart({
     svg.selectAll('*').remove()
 
     const width = svgRef.current.clientWidth || 400
-    const height = 200
+    const height = 500
     const margin = { top: 16, right: 16, bottom: 32, left: 36 }
     const innerW = width - margin.left - margin.right
     const innerH = height - margin.top - margin.bottom
@@ -211,7 +219,7 @@ function AgentPointsChart({
     return <p className="text-xs text-slate-500 italic">Start simulation to see agent points...</p>
   }
 
-  return <svg ref={svgRef} className="w-full" height={200} />
+  return <svg ref={svgRef} className="w-full market-chart-svg" height={380} />
 }
 
 // --- Main Export ---
@@ -224,7 +232,7 @@ export default function MarketChart({
   agentPointsHistory: AgentPointsEntry[]
   agents: { Agent_name: string }[]
 }) {
-  const [activeTab, setActiveTab]       = useState<'stocks' | 'agents'>('stocks')
+  const [activeTab, setActiveTab] = useState<'stocks' | 'agents'>('stocks')
   const [visibleAgents, setVisibleAgents] = useState<Set<string>>(
     new Set(agents.map((a) => a.Agent_name))
   )
@@ -254,21 +262,19 @@ export default function MarketChart({
       <div className="flex gap-3 border-b border-slate-800 pb-3 mb-4">
         <button
           onClick={() => setActiveTab('stocks')}
-          className={`text-xs font-semibold px-3 py-1 rounded transition ${
-            activeTab === 'stocks'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'text-slate-1000 hover:text-slate-250'
-          }`}
+          className={`text-xs font-semibold px-3 py-1 rounded transition ${activeTab === 'stocks'
+            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+            : 'text-slate-1000 hover:text-slate-250'
+            }`}
         >
           Stock Conditions
         </button>
         <button
           onClick={() => setActiveTab('agents')}
-          className={`text-xs font-semibold px-3 py-1 rounded transition ${
-            activeTab === 'agents'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'text-slate-1000 hover:text-slate-250'
-          }`}
+          className={`text-xs font-semibold px-3 py-1 rounded transition ${activeTab === 'agents'
+            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+            : 'text-slate-1000 hover:text-slate-250'
+            }`}
         >
           Agent Points
         </button>
