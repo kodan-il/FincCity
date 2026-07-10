@@ -138,7 +138,7 @@ export default function AgentManagement() {
   const selectedMeta = selectedAgent ? getAgentMeta(selectedAgent.Agent_name) : null;
 
   return (
-    <div className="agent-workshop-page">
+    <div className="agent-workshop-page overflow-y-auto h-full">
       <section className="agent-workshop-hero">
         <div>
           <div className="orange-ribbon">🏘 Citizen Workshop</div>

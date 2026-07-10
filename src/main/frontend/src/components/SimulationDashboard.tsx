@@ -57,8 +57,10 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
   const [error, setError] = useState<string | null>(null)
   const [simRunning, setSimRunning] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [isAboutOpen, setIsAboutOpen] = useState(false)
   const [liveState, setLiveState] = useState<LiveState | null>(null)
   const [player, setPlayer] = useState<PlayerState | null>(null)
+
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -196,14 +198,23 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
               <p className="mt-2 text-sm font-bold text-slate-500">Tap start and watch every citizen make money decisions.</p>
             </div>
 
-            <button
-              onClick={handleStartSimulation}
-              disabled={simRunning || starting}
-              className="start-button disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span className="text-xl">{simRunning ? '⏳' : starting ? '✨' : '▶️'}</span>
-              {simRunning ? 'Simulation running' : starting ? 'Starting city...' : 'Start Simulation'}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsAboutOpen(true)}
+                className="secondary-game-button"
+              >
+                About
+              </button>
+              <button
+                onClick={handleStartSimulation}
+                disabled={simRunning || starting}
+                className="start-button disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="text-xl">{simRunning ? '⏳' : starting ? '✨' : '▶️'}</span>
+                {simRunning ? 'Simulation running' : starting ? 'Starting city...' : 'Start Simulation'}
+              </button>
+            </div>
           </div>
 
           <div className="dashboard-chart-leaderboard">
@@ -229,6 +240,71 @@ export default function SimulationDashboard({ onLiveMetaChange }: SimulationDash
           </div>
         </section>
       </div>
+
+      {isAboutOpen && (
+        <div
+          className="about-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setIsAboutOpen(false)}
+        >
+          <div className="about-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="about-modal-header">
+              <h3>About FinnCity</h3>
+              <button type="button" className="about-modal-close" onClick={() => setIsAboutOpen(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="about-modal-body space-y-4 text-sm">
+              <div>
+                <p className="text-xl font-black text-slate-800">Welcome to FinnCity! 🏙️</p>
+                <p className="mt-1 text-slate-500">
+                  A cheerful little city where AI citizens make real financial decisions.
+                </p>
+              </div>
+
+              <p className="text-slate-600">
+                FinnCity is a behavioral simulation powered by Large Language Models (LLM).
+                Each citizen in this city is an AI agent with their own unique personality,
+                financial literacy, and risk tolerance — and they react to the stock market
+                just like real people do.
+              </p>
+
+              <div>
+                <p className="font-black text-slate-700 mb-2">As the Mayor, you have three superpowers:</p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span>🎛️</span>
+                    <span className="text-slate-600">
+                      <span className="font-black text-slate-700">Shape the Citizens</span> — Visit the Agent Management panel to tune each citizen's personality traits. Make them bold, cautious, impulsive, or analytical.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>⚡</span>
+                    <span className="text-slate-600">
+                      <span className="font-black text-slate-700">Shake the Market</span> — Inject live market signals during the simulation. Spread hype, trigger panic, or issue regulatory warnings — and watch how each citizen reacts based on who they are.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>🎟️</span>
+                    <span className="text-slate-600">
+                      <span className="font-black text-slate-700">Place Your Bets</span> — Predict which citizen will make the smartest financial moves each tick and earn Mayor Coins.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <p className="text-slate-600 italic">
+                The big question: can you tell the difference between a well-informed investor
+                and someone chasing hype?
+              </p>
+
+              <p className="font-black text-slate-700">Start the simulation and find out. 🚀</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <aside className="cartoon-panel diary-panel min-h-[420px] p-5 xl:min-h-0 xl:overflow-hidden">
         <div className="sticky top-0 z-10 mb-4 bg-transparent pb-2">
