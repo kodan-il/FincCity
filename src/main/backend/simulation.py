@@ -287,6 +287,45 @@ def bankruptcy_summary(agent: AgentProfile):
         print(f"iter {h.iteration} | "
               f"{h.stock_name} | {h.outcome:+d} | pts: {h.points_after}")
 
+def reset_simulation_state():
+    """
+    Reset all agent data and live simulation data before a new run.
+    """
+
+    # Reset every agent to their original state
+    for agent in agents_pool:
+        agent.financial_points = 10
+        agent.current_asset_allocation = ""
+        agent.is_bankrupt = False
+        agent.stock_history = []
+
+    # Clear the existing dictionary instead of replacing it.
+    # This is important because main.py imports the same live_state object.
+    live_state.clear()
+
+    live_state.update({
+        "current_tick": 0,
+        "current_month": 0,
+        "market_condition": "",
+        "market_event": None,
+        "market_metrics": [],
+        "market_events": [],
+        "agent_snapshots": [
+            {
+                "Agent_name": agent.Agent_name,
+                "financial_points": agent.financial_points,
+                "current_asset_allocation": agent.current_asset_allocation,
+                "is_bankrupt": agent.is_bankrupt
+            }
+            for agent in agents_pool
+        ],
+        "diary_entries": [],
+        "stock_history": [],
+        "agent_points_history": [],
+        "agent_point_history": [],
+        "active_intervention": None
+    })
+
 def run_simulation():
     reports = []
     snapshots_points = {agent.Agent_name: agent.financial_points for agent in agents_pool}

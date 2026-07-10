@@ -28,6 +28,18 @@ type AgentPointHistoryItem = {
   }[]
 }
 
+type LiveStock = {
+  name: string
+  type: 'stable' | 'high_volatile'
+  trend: 'bull' | 'bear'
+  outcome: number
+}
+
+type StockHistoryTick = {
+  tick: number
+  stocks: LiveStock[]
+}
+
 type LiveState = {
   current_tick: number
   current_month: number
@@ -38,7 +50,7 @@ type LiveState = {
   diary_entries?: DiaryEntry[]
   agent_snapshots?: AgentSnapshot[]
   agent_points_history?: AgentPointHistoryItem[]
-
+  stock_history?: StockHistoryTick[]
 }
 
 
@@ -51,7 +63,7 @@ const marketMetrics = [
   { label: 'Investor Confidence', value: 'High', change: '+1.8%', icon: '😊', tone: 'green', bars: [35, 45, 58, 54, 62, 76, 80] },
 ]
 
-const assets = [
+const assetMetadata = [
   { icon: '💻', name: 'Technology Stock', type: 'Growth asset', risk: 4, returnPotential: 5, volatility: 4, trend: 'Rising', change: '+4.32%', lesson: 'Technology stocks can grow quickly, but prices often swing when investors react to news or earnings.' },
   { icon: '🏦', name: 'Banking Stock', type: 'Financial sector', risk: 2, returnPotential: 3, volatility: 2, trend: 'Stable', change: '+1.23%', lesson: 'Banks may benefit from higher interest rates, but they can suffer when the economy weakens.' },
   { icon: '🚗', name: 'Automobile Stock', type: 'Cyclical asset', risk: 3, returnPotential: 3, volatility: 3, trend: 'Stable', change: '+0.88%', lesson: 'Auto stocks often depend on consumer spending, fuel prices, and the broader economic cycle.' },
@@ -182,7 +194,20 @@ function TrendChart({
   )
 }
 
-function AssetCard({ asset }: { asset: (typeof assets)[number] }) {
+type AssetView = {
+  icon: string
+  name: string
+  type: string
+  risk: number
+  returnPotential: number
+  volatility: number
+  trend: string
+  change: string
+  lesson: string
+  isLive: boolean
+}
+
+function AssetCard({ asset }: { asset: AssetView }) {
   return (
     <article className="learning-card asset-card">
       <div className="asset-card-header">
@@ -279,7 +304,85 @@ function getPortfolioParts(assetName: string) {
 export default function FinancialLearningHub() {
   const [activeTab, setActiveTab] = useState<HubTab>('overview')
   const [liveState, setLiveState] = useState<LiveState | null>(null)
-  const visibleAssets = useMemo(() => assets, [])
+  const visibleAssets = useMemo(() => {
+    const history = liveState?.stock_history ?? []
+
+    return assetMetadata.map((metadata) => {
+      const assetHistory = history
+        .flatMap((entry) =>
+          entry.stocks.map((stock) => ({
+            ...stock,
+            tick: entry.tick,
+          }))
+        )
+        .filter((stock) => stock.name === metadata.name)
+
+      const latest = assetHistory.at(-1)
+
+      const recentHistory = assetHistory.slice(-5)
+
+      const averageOutcome =
+        recentHistory.length > 0
+          ? recentHistory.reduce((sum, stock) => sum + stock.outcome, 0) /
+          recentHistory.length
+          : 0
+
+      const averageMovement =
+        recentHistory.length > 0
+          ? recentHistory.reduce(
+            (sum, stock) => sum + Math.abs(stock.outcome),
+            0
+          ) / recentHistory.length
+          : 0
+
+      const returnPotential = Math.max(
+        1,
+        Math.min(5, Math.round(3 + averageOutcome / 2))
+      )
+
+      const volatility = Math.max(
+        1,
+        Math.min(
+          5,
+          Math.round(
+            metadata.baseRisk +
+            averageMovement / 2 +
+            (latest?.type === 'high_volatile' ? 1 : 0)
+          )
+        )
+      )
+
+      const risk = Math.max(
+        1,
+        Math.min(
+          5,
+          latest?.type === 'high_volatile'
+            ? Math.max(4, metadata.baseRisk)
+            : metadata.baseRisk
+        )
+      )
+
+      const outcome = latest?.outcome ?? 0
+
+      const trend =
+        outcome > 0 ? 'Rising' : outcome < 0 ? 'Falling' : 'Stable'
+
+      const change = `${outcome >= 0 ? '+' : ''}${outcome.toFixed(2)}%`
+
+      return {
+        icon: metadata.icon,
+        name: metadata.displayName ?? metadata.name,
+        type: metadata.type,
+        risk,
+        returnPotential,
+        volatility,
+        trend,
+        change,
+        lesson: metadata.lesson,
+        isLive: Boolean(latest),
+      }
+    })
+  }, [liveState?.stock_history])
 
   useEffect(() => {
     const fetchLiveState = async () => {

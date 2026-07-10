@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
-from simulation import run_simulation
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from schemas import AgentProfile, MarketCondition, MarketIntervention
 from agents import agents_pool
-from simulation import live_state
+from simulation import run_simulation, live_state, reset_simulation_state
 from player import get_player_state, place_bet, reset_player_state
 
 
@@ -36,8 +36,6 @@ simulation_status = {
 
 
 def run_simulation_background():
-    simulation_status["running"] = True
-    simulation_status["finished"] = False
     try:
         run_simulation()
     except Exception as e:
@@ -45,6 +43,7 @@ def run_simulation_background():
     finally:
         simulation_status["running"] = False
         simulation_status["finished"] = True
+        simulation_status["current_tick"] = live_state.get("current_tick", 0)
 
 @app.get("/api/agents", response_model=list[AgentProfile])
 def get_agents():
@@ -64,8 +63,24 @@ def sync_agent(updated_agent: AgentProfile):
 def start_simulation(background_tasks: BackgroundTasks):
     if simulation_status["running"]:
         return {"status": "already_running"}
+
+    # Reset agents, histories, graphs and live simulation state
+    reset_simulation_state()
+
+    # Reset Mayor Coins, active bet and betting history
+    reset_player_state()
+
+    # Reset status values before starting
+    simulation_status["running"] = True
+    simulation_status["finished"] = False
+    simulation_status["current_tick"] = 0
+
     background_tasks.add_task(run_simulation_background)
-    return {"status": "Simulation started"}
+
+    return {
+        "status": "Simulation started",
+        "message": "A fresh simulation has started."
+    }
 
 @app.get("/api/simulation/status")
 def get_simulation_status():
