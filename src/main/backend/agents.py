@@ -7,7 +7,7 @@ agents_pool =[
         literacy_level="high",
         fomo_level="medium",
         tendency="neutral",
-        personality="contrarian"
+        personality="contrarian",
     ),
     AgentProfile(
         Agent_name="Eriko",

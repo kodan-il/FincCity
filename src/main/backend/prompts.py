@@ -41,19 +41,29 @@ def build_prompt(
     ])
 
     intervention_block = ""
+    memory_block = ""
 
     if active_intervention:
         intervention_type = active_intervention.get("intervention_type")
         narrative = INTERVENTION_NARRATIVES.get(intervention_type, {}) # type: ignore
         if narrative:
             intervention_block = f"""
-    ⚠️  LIVE MARKET SIGNAL (This is happening RIGHT NOW):
+    LIVE MARKET SIGNAL (This is happening RIGHT NOW):
     {narrative['headline']}
 
     What people around you are saying:
     {narrative['social_pressure']}
 
     This signal is active and real. How you react depends entirely on your personality.
+    """
+
+    if agent.memory:
+        memory_lines = "\n".join(f"  - {m}" for m in agent.memory)
+        memory_block = f"""
+    YOUR PAST DECISIONS (last {len(agent.memory)} ticks):
+    {memory_lines}
+
+    Reflect on your past choices. Did they work out? Are you repeating mistakes?
     """
 
     return f"""
@@ -77,6 +87,9 @@ def build_prompt(
     - If your tendency is "risk-seeking": you prefer high reward even if risky.
     - If your tendency is "risk-averse": you prefer safety over high returns.
 
+    
+    {memory_block}
+    
     CURRENT MARKET CONDITION:
     {market.condition.upper()} — {market.description}
     {intervention_block}

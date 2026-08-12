@@ -54,3 +54,5 @@ class AgentProfile(BaseModel):
     current_asset_allocation: str = ""
     is_bankrupt: bool = False
     stock_history: list[StockHistory] = []
+
+    memory: list[str] = []

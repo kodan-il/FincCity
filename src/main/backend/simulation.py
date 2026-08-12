@@ -416,6 +416,17 @@ def run_simulation():
             previous_points = agent.financial_points
             agent_update(agent, decision.stock, outcome, iteration)
 
+            # Adding memory entry for the agent's decision and outcome
+            memory_entry = (
+                f"Tick {iteration}: I chose {decision.stock.Stock_Name} "
+                f"({'high volatile' if decision.stock.Stock_Type == 'high_volatile' else 'stable'}). "
+                f"Outcome: {'+' if outcome > 0 else ''}{outcome} points. "
+                f"Market was {market_condition.condition}. "
+                f"I now have {agent.financial_points} points."
+            )
+            agent.memory.append(memory_entry)
+
+
             stock_name = decision.stock.Stock_Name
             if stock_name not in stock_outcomes_this_tick:
                 stock_outcomes_this_tick[stock_name] = {
