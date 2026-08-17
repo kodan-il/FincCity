@@ -366,7 +366,9 @@ def reset_simulation_state():
 def run_simulation():
     init_history_file()
     reports = []
+    tick_logs=[]
     snapshots_points = {agent.Agent_name: agent.financial_points for agent in agents_pool}
+    leaderboard_logs = []
 
     for iteration in range (1,25):
         print(f"\n{'='*40}")
@@ -454,6 +456,20 @@ def run_simulation():
             previous_points = agent.financial_points
             agent_update(agent, decision.stock, outcome, iteration)
 
+
+            tick_logs.append({
+                "tick": iteration,
+                "agent": agent.Agent_name,
+                "market": market_condition.condition,
+                "stock": decision.stock.Stock_Name,
+                "outcome": outcome,
+                "points": agent.financial_points,
+                "reasoning": reasoning,
+                "memory": list(agent.memory),
+                "bankrupt": agent.is_bankrupt,
+            })
+
+            
             # Adding memory entry for the agent's decision and outcome
             memory_entry = (
                 f"Tick {iteration}: I chose {decision.stock.Stock_Name} "
@@ -463,16 +479,6 @@ def run_simulation():
                 f"I now have {agent.financial_points} points."
             )
             agent.memory.append(memory_entry)
-
-
-            write_tick_to_history(
-                iteration=iteration,
-                market_condition=market_condition,
-                agent=agent,
-                stock_name=decision.stock.Stock_Name,
-                outcome=outcome,
-                reasoning=reasoning,
-            )
 
             stock_name = decision.stock.Stock_Name
             if stock_name not in stock_outcomes_this_tick:
@@ -547,6 +553,20 @@ def run_simulation():
             report = generate_report(iteration, market_condition, snapshots_points)
             reports.append(report)
 
+            leaderboard_logs.append({
+                "month": report.Iteration_Month,
+                "iteration": iteration,
+                "standings": sorted(
+                    [{"name": a.Agent_name, "points": a.financial_points, "bankrupt": a.is_bankrupt}
+                    for a in agents_pool],
+                    key=lambda x: x["points"], reverse=True
+                ),
+                "avg_points": report.avg_financial_points,
+                "profiting": report.agents_profits,
+                "losing": report.agents_loss,
+                "bankrupt": report.agents_bankrupt,
+            })
+
             print(f"\nMONTHLY REPORT {report.Iteration_Month}:")
             print(f"Profits  : {report.agents_profits}")
             print(f"Loss     : {report.agents_loss}")
@@ -557,6 +577,7 @@ def run_simulation():
                 agent.Agent_name: agent.financial_points
                 for agent in agents_pool
             }
+
     # Final Summary after 24 iteration
     print(f"\n{'='*40}")
     print(f"Simulation done. Final standings:")
@@ -581,5 +602,74 @@ def run_simulation():
               f"| volatile picks: {volatile_count}x "
               f"| last pts: {agent.financial_points}")
 
+    # ← history_path harus di sini, sejajar dengan for loop di atas
+    history_path = os.path.join(os.path.dirname(__file__), "history.txt")
+    with open(history_path, "w", encoding="utf-8") as f:
+        f.write(f"FINNCITY SIMULATION HISTORY\n")
+        f.write(f"Saved: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Agents: {', '.join(a.Agent_name for a in agents_pool)}\n")
+        f.write(f"{'='*50}\n")
 
+        # Tick logs
+        f.write(f"\n📋 TICK-BY-TICK LOG\n")
+        f.write(f"{'='*50}\n")
+        for log in tick_logs:
+            f.write(f"\nTICK #{log['tick']} | {log['agent']}\n")
+            f.write(f"Market    : {log['market']}\n")
+            f.write(f"Stock     : {log['stock']}\n")
+            f.write(f"Outcome   : {'+' if log['outcome'] > 0 else ''}{log['outcome']} pts\n")
+            f.write(f"Points    : {log['points']} pts\n")
+            f.write(f"Reasoning : {log['reasoning']}\n")
+            if log['memory']:
+                f.write(f"Memory    :\n")
+                for m in log['memory']:
+                    f.write(f"  - {m}\n")
+            if log['bankrupt']:
+                f.write(f"STATUS    : 💀 BANKRUPT\n")
+
+        # ── Agent Profiles ────────────────────────────────
+        f.write(f"\n👥 AGENT PROFILES\n")
+        f.write(f"{'='*50}\n")
+        for agent in agents_pool:
+            f.write(f"\n{agent.Agent_name}\n")
+            f.write(f"  Economic Level : {agent.economic_level}\n")
+            f.write(f"  Literacy Level : {agent.literacy_level}\n")
+            f.write(f"  FOMO Level     : {agent.fomo_level}\n")
+            f.write(f"  Tendency       : {agent.tendency}\n")
+            f.write(f"  Personality    : {agent.personality}\n")
+            f.write(f"  Starting Pts   : 10\n")
+            f.write(f"  Final Pts      : {agent.financial_points}\n")
+            f.write(f"  Status         : {'💀 BANKRUPT' if agent.is_bankrupt else '✅ Active'}\n")
+            
+        # Monthly leaderboard
+        f.write(f"\n\n{'='*50}\n")
+        f.write(f"📊 MONTHLY LEADERBOARD\n")
+        f.write(f"{'='*50}\n")
+        for lb in leaderboard_logs:
+            f.write(f"\n── MONTH {lb['month']} (after tick #{lb['iteration']}) ──\n")
+            for i, entry in enumerate(lb['standings'], 1):
+                status = "💀" if entry['bankrupt'] else "✅"
+                f.write(f"  {i}. {status} {entry['name']:12} {entry['points']} pts\n")
+            f.write(f"  Avg pts  : {lb['avg_points']}\n")
+            f.write(f"  Profiting: {', '.join(lb['profiting']) or '-'}\n")
+            f.write(f"  Losing   : {', '.join(lb['losing']) or '-'}\n")
+            f.write(f"  Bankrupt : {', '.join(lb['bankrupt']) or '-'}\n")
+
+        # Final standings
+        f.write(f"\n\n{'='*50}\n")
+        f.write(f"🏁 FINAL STANDINGS\n")
+        f.write(f"{'='*50}\n")
+        for i, agent in enumerate(active_agents, 1):
+            f.write(f"  {i}. {agent.Agent_name} — {agent.financial_points} pts\n")
+
+        if bankrupt_agents:
+            f.write(f"\n💀 BANKRUPT:\n")
+            for agent in bankrupt_agents:
+                volatile_count = sum(
+                    1 for h in agent.stock_history
+                    if h.stock_type == "high_volatile"
+                )
+                f.write(f"  - {agent.Agent_name} | volatile picks: {volatile_count}x\n")
+
+    print(f"\n✅ History saved to history.txt")
     return reports
