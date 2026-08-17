@@ -9,6 +9,8 @@ from openai import OpenAI, responses
 from prompts import build_prompt
 from settings import OPENAI_API_KEY, LLM_VERS
 from player import resolve_bet_after_tick
+import os
+from datetime import datetime
 
 client = OpenAI(
     api_key=OPENAI_API_KEY,
@@ -64,6 +66,41 @@ def get_market_condition() -> MarketCondition:
         condition=market_condition,
         description=descriptions[market_condition]
     )
+
+# Create history.txt file to store the simulation history
+def write_tick_to_history(
+    iteration: int,
+    market_condition: MarketCondition,
+    agent: AgentProfile,
+    stock_name: str,
+    outcome: int,
+    reasoning: str,
+):
+    history_path = os.path.join(os.path.dirname(__file__), "history.txt")
+    
+    with open(history_path, "a", encoding="utf-8") as f:
+        f.write(f"\n{'='*50}\n")
+        f.write(f"TICK #{iteration} | {agent.Agent_name}\n")
+        f.write(f"Market    : {market_condition.condition}\n")
+        f.write(f"Stock     : {stock_name}\n")
+        f.write(f"Outcome   : {'+' if outcome > 0 else ''}{outcome} pts\n")
+        f.write(f"Points    : {agent.financial_points} pts\n")
+        f.write(f"Reasoning : {reasoning}\n")
+        if agent.memory:
+            f.write(f"Memory    :\n")
+            for m in agent.memory:
+                f.write(f"  - {m}\n")
+        if agent.is_bankrupt:
+            f.write(f"STATUS    : Bankrupt\n")
+
+def init_history_file():
+    history_path = os.path.join(os.path.dirname(__file__), "history.txt")
+    with open(history_path, "w", encoding="utf-8") as f:
+        f.write(f"FINNCITY SIMULATION HISTORY\n")
+        f.write(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"{'='*50}\n")
+        f.write(f"Agents: {', '.join(a.Agent_name for a in agents_pool)}\n")
+        f.write(f"{'='*50}\n")
 
 def build_market_metrics(iteration, market_condition, agents_pool):
     avg_points = sum(a.financial_points for a in agents_pool) / len(agents_pool)
@@ -327,6 +364,7 @@ def reset_simulation_state():
     })
 
 def run_simulation():
+    init_history_file()
     reports = []
     snapshots_points = {agent.Agent_name: agent.financial_points for agent in agents_pool}
 
@@ -426,6 +464,15 @@ def run_simulation():
             )
             agent.memory.append(memory_entry)
 
+
+            write_tick_to_history(
+                iteration=iteration,
+                market_condition=market_condition,
+                agent=agent,
+                stock_name=decision.stock.Stock_Name,
+                outcome=outcome,
+                reasoning=reasoning,
+            )
 
             stock_name = decision.stock.Stock_Name
             if stock_name not in stock_outcomes_this_tick:
