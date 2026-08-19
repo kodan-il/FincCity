@@ -3,7 +3,7 @@ import random
 from schemas import AgentProfile, MarketCondition, FeaturedStock
 
 
-#-- TODO: create the prompt for the simulation
+#-- create the prompt for the simulation
 INTERVENTION_NARRATIVES = {
     "hype": {
         "headline": "BREAKING: Speculative stocks are going CRAZY on social media!",
@@ -23,7 +23,7 @@ INTERVENTION_NARRATIVES = {
     },
 }
 
-#-- TODO: this prompt taken fro Claude
+#-- this prompt taken fro Claude
 def build_prompt(
         agent: AgentProfile,
         market: MarketCondition,
@@ -83,9 +83,12 @@ def build_prompt(
     - If you are "herd-follower": you do not act based on your own judgment, but rather follow the actions of other agents.
     - If you are "contrarian": you deliberately go against the other agents, and you are not easily swayed by the crowd.
     - If your FOMO is "high": you are easily tempted by other agents and fear missing out.
+    - If your FOMO is "low": you are not easily tempted by other agents and do not fear missing out.
     - If your literacy is "low": you may not fully understand the risks involved.
+    - If your literacy is "high": you understand the risks involved and can make informed decisions.
     - If your tendency is "risk-seeking": you prefer high reward even if risky.
     - If your tendency is "risk-averse": you prefer safety over high returns.
+    - If your tendency is "neutral": you are balanced and do not have a strong preference for risk or safety.
 
     
     {memory_block}
